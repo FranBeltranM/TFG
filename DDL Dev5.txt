@@ -1,0 +1,102 @@
+-- auto-generated definition
+create table DatosTecnicos
+(
+    id                                 varbinary(16) not null
+        primary key,
+    cod_tipo                           char(2)       null,
+    cod_propulsion_itv                 char          null,
+    cilindrada_itv                     float         null,
+    potencia_itv                       float         null,
+    nivel_emisiones_euro_itv           varchar(8)    null,
+    categoria_homologacion_europea_itv char(4)       null,
+    mascara                            varchar(32)   null,
+    constraint DatosTecnicos_mascara_uindex
+        unique (mascara)
+);
+
+-- auto-generated definition
+create table Fabricantes
+(
+    id     bigint default (uuid_short()) not null
+        primary key,
+    VMI    char(3)                       null,
+    VDS    char(6)                       null,
+    marca  varchar(255)                  null,
+    modelo varchar(255)                  null,
+    constraint Fabricantes_VDS_uindex
+        unique (VDS),
+    constraint Fabricantes_VMI_uindex
+        unique (VMI)
+);
+
+-- auto-generated definition
+create table MarcaModelo
+(
+    id         varbinary(16) not null
+        primary key,
+    marca_itv  varchar(30)   not null,
+    modelo_itv varchar(30)   not null
+);
+
+create index idx_MarcaModelo_marca_itv
+    on MarcaModelo (marca_itv);
+
+create index idx_MarcaModelo_modelo_itv
+    on MarcaModelo (modelo_itv);
+
+-- auto-generated definition
+create table Transferencia
+(
+    id                varbinary(16) not null
+        primary key,
+    id_vehiculo       varbinary(16) not null,
+    fecha_tramite     date          not null,
+    fecha_tramitacion date          null,
+    fecha_proceso     date          not null,
+    id_detalle        varbinary(16) not null,
+    constraint fk_Transferencia_id_detalle
+        foreign key (id_detalle) references TransferenciaDetalle (id),
+    constraint fk_Transferencia_id_vehiculo
+        foreign key (id_vehiculo) references Vehiculo (id)
+);
+
+-- auto-generated definition
+create table TransferenciaDetalle
+(
+    id                      varbinary(16) not null
+        primary key,
+    ind_precinto            char(2)       null,
+    ind_embargo             char(2)       null,
+    localidad_vehiculo      varchar(24)   null,
+    cod_provincia_mat       char(2)       null,
+    cod_provincia_veh       char(2)       null,
+    clave_tramite           char          null,
+    codigo_postal           int           null,
+    persona_fisica_juridica char          null,
+    servicio_itv            char(3)       null,
+    municipio               varchar(30)   null,
+    renting                 char          null,
+    ind_baja_def            char          null,
+    ind_baja_temp           char          null,
+    ind_sustraccion         char          null
+);
+
+-- auto-generated definition
+create table Vehiculo
+(
+    id                       varbinary(16) not null
+        primary key,
+    id_marca_modelo          varbinary(16) not null,
+    id_datos_tecnicos        varbinary(16) not null,
+    bastidor_itv             varchar(21)   not null,
+    cod_clase_mat            int           null,
+    fecha_prim_matriculacion date          null,
+    fecha_matricula          date          null,
+    constraint unique_bastidor_itv_cod_mat
+        unique (bastidor_itv, cod_clase_mat),
+    constraint fk_Vehiculo_id_datos_tecnicos
+        foreign key (id_datos_tecnicos) references DatosTecnicos (id),
+    constraint fk_Vehiculo_id_marca_modelo
+        foreign key (id_marca_modelo) references MarcaModelo (id)
+);
+

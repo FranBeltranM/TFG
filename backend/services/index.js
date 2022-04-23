@@ -33,23 +33,23 @@ export const getNumberOfTransferFromVIN = async (vin) => {
   return data
 }
 
-export const getBrandModelUUID = async (brand, model) => {
-  const sqlQuery = `SELECT BIN_TO_UUID(id,1) as brand_model_uuid
-                    FROM dev5.MarcaModelo
-                    WHERE marca_itv = ? AND modelo_itv = ?`
-  const data = query(sqlQuery, [brand, model])
+// export const getBrandModelUUID = async (brand, model) => {
+//   const sqlQuery = `SELECT BIN_TO_UUID(id,1) as brand_model_uuid
+//                     FROM dev5.MarcaModelo
+//                     WHERE marca_itv = ? AND modelo_itv = ?`
+//   const data = query(sqlQuery, [brand, model])
 
-  return data
-}
+//   return data
+// }
 
-export const getTechnicalDataUUID = async (mask) => {
-  const sqlQuery = `SELECT BIN_TO_UUID(id,1) as technical_data_uuid
-                    FROM dev5.DatosTecnicos
-                    WHERE mascara = ?`
-  const data = query(sqlQuery, [mask])
+// export const getTechnicalDataUUID = async (mask) => {
+//   const sqlQuery = `SELECT BIN_TO_UUID(id,1) as technical_data_uuid
+//                     FROM dev5.DatosTecnicos
+//                     WHERE mascara = ?`
+//   const data = query(sqlQuery, [mask])
 
-  return data
-}
+//   return data
+// }
 
 export const getModelsFromBrand = async (brand) => {
   const sqlQuery = `SELECT id, marca_itv, modelo_itv
@@ -60,42 +60,16 @@ export const getModelsFromBrand = async (brand) => {
   return data
 }
 
-export const insertNewVehicle = async (vehicleUUID, vehicleDataUUID, vin, plateCode, firstMatriculationDate, matriculationDate) => {
-  const sqlQuery = 'call dev5.insertarVehiculo(?, ?, ?, ?, ?, ?)'
-  const data = query(sqlQuery, [vehicleUUID, vehicleDataUUID, vin, plateCode, firstMatriculationDate, matriculationDate])
+// export const insertNewVehicle = async (vehicleUUID, vehicleDataUUID, vin, plateCode, firstMatriculationDate, matriculationDate) => {
+//   const sqlQuery = 'call dev5.insertarVehiculo(?, ?, ?, ?, ?, ?)'
+//   const data = query(sqlQuery, [vehicleUUID, vehicleDataUUID, vin, plateCode, firstMatriculationDate, matriculationDate])
 
-  return data
-}
+//   return data
+// }
 
 export const insertNewTransfer = async (transferData) => {
-  const {
-    bastidor,
-    codMatricula,
-    fechaTramite,
-    fechaTramitacion,
-    fechaProceso,
-    indPrecinto,
-    indEmbargo,
-    localidadVehiculo,
-    codProvinciaMatricula,
-    codProvinciaVehiculo,
-    claveTramite,
-    codigoPostal,
-    personaFisicaJuridica,
-    servicioITV,
-    municipio,
-    renting,
-    indBajaDefinitiva,
-    indBajaTemporal,
-    indSustraccion
-  } = transferData
-
   const sqlQuery = 'call dev5.insertarTransferencia(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  const data = query(sqlQuery, [bastidor, codMatricula, fechaTramite, fechaTramitacion, fechaProceso,
-    indPrecinto, indEmbargo, localidadVehiculo, codProvinciaMatricula,
-    codProvinciaVehiculo, claveTramite, codigoPostal, personaFisicaJuridica,
-    servicioITV, municipio, renting, indBajaDefinitiva, indBajaTemporal, indSustraccion
-  ])
+  const data = query(sqlQuery, transferData)
 
   return data
 }
@@ -105,6 +79,27 @@ export const getTransferDetails = async (transferDetailUUID) => {
                     FROM TransferenciaDetalle
                     WHERE BIN_TO_UUID(id, 1) = ?`
   const data = query(sqlQuery, [transferDetailUUID])
+
+  return data
+}
+
+export const insertNewVehicle = async (dataVehicleArray) => {
+  const sqlQuery = 'call dev5.insertarVehiculo(?, ?, ?, ?, ?, ?, ?)'
+  const data = query(sqlQuery, dataVehicleArray)
+
+  return data
+}
+
+export const insertNewBrandModel = async (dataBrandModel) => {
+  const sqlQuery = 'call dev5.insertarMarcaModelo(?, ?)'
+  const data = query(sqlQuery, dataBrandModel)
+
+  return data
+}
+
+export const insertNewTechnicalData = async (dataTechnical) => {
+  const sqlQuery = 'call dev5.insertarDatosTecnicos(?, ?, ?, ?, ?, ?, ?)'
+  const data = query(sqlQuery, dataTechnical)
 
   return data
 }

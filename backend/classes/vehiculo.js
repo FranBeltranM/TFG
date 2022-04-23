@@ -141,38 +141,91 @@ export default class Registro {
     return this.fec_proceso
   }
 
+  get getDatos () {
+    return this.getMarcaModelo
+      .concat(this.getDatosTecnicos)
+      .concat(this.getDatosVehiculo)
+      .concat(this.getDatosTransferencia)
+      .concat(this.getDatosTransferenciaDetalles)
+  }
+
+  get getDatosInsertVehicle () {
+    return this.getMarcaModelo
+      .concat(this.getMascara)
+      .concat(this.getDatosVehiculo)
+  }
+
+  get getDatosInsertTransfer () {
+    return [this.bastidor_itv, this.cod_clase_mat]
+      .concat(this.getDatosTransferencia)
+      .concat(this.getDatosTransferenciaDetalles)
+  }
+
+  get getMarcaModelo () {
+    return [
+      this.marca_itv,
+      this.modelo_itv
+    ]
+  }
+
+  get getDatosTecnicos () {
+    return [
+      this.cod_tipo,
+      this.cod_propulsion_itv,
+      this.cilindrada_itv,
+      this.potencia_itv,
+      this.nivel_emisiones_euro_itv,
+      this.categoria_homologacion_europea_itv,
+      this.getMascara
+    ]
+  }
+
+  get getDatosVehiculo () {
+    return [
+      this.bastidor_itv,
+      this.cod_clase_mat,
+      this.fec_prim_matriculacion,
+      this.fec_matricula
+    ]
+  }
+
   get getDatosTransferencia () {
-    return {
-      bastidor: this.bastidor_itv,
-      codMatricula: this.cod_clase_mat,
-      fechaTramite: this.fec_tramite,
-      fechaTramitacion: this.fec_tramitacion,
-      fechaProceso: this.fec_proceso,
-      indPrecinto: this.ind_precinto,
-      indEmbargo: this.ind_embargo,
-      localidadVehiculo: this.localidad_vehiculo,
-      codProvinciaMatricula: this.cod_provincia_mat,
-      codProvinciaVehiculo: this.cod_provincia_veh,
-      claveTramite: this.clave_tramite,
-      codigoPostal: this.codigo_postal,
-      personaFisicaJuridica: this.persona_fisica_juridica,
-      servicioITV: this.servicio,
-      municipio: this.municipio,
-      renting: this.renting,
-      indBajaDefinitiva: this.ind_baja_def,
-      indBajaTemporal: this.ind_baja_temp,
-      indSustraccion: this.ind_sustraccion
-    }
+    return [
+      this.fec_tramite,
+      this.fec_tramitacion,
+      this.fec_proceso
+    ]
+  }
+
+  get getDatosTransferenciaDetalles () {
+    return [
+      this.ind_precinto,
+      this.ind_embargo,
+      this.localidad_vehiculo,
+      this.cod_provincia_mat,
+      this.cod_provincia_veh,
+      this.clave_tramite,
+      this.codigo_postal,
+      this.persona_fisica_juridica,
+      this.servicio,
+      this.municipio,
+      this.renting,
+      this.ind_baja_def,
+      this.ind_baja_temp,
+      this.ind_sustraccion
+    ]
   }
 
   get getMascara () {
     const separator = '-'
 
-    return [this.cod_tipo, separator,
+    return [
+      this.cod_tipo, separator,
       this.cod_propulsion_itv, separator,
       this.cilindrada_itv, separator,
       this.potencia_itv, separator,
       this.nivel_emisiones_euro_itv, separator,
-      this.categoria_homologacion_europea_itv].join('')
+      this.categoria_homologacion_europea_itv
+    ].join('')
   }
 }

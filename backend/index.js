@@ -1,16 +1,17 @@
 import express from 'express'
 import dotenv from 'dotenv'
 import Registro from './classes/vehiculo.js'
-import {
-  getDataFromVIN,
-  getTechnicalDataUUID,
-  getBrandModelUUID,
-  insertNewVehicle,
-  loadDataFromFile,
-  insertNewTransfer,
-  getTransferDetails
-} from './services/index.js'
 import { createPool, deletePool } from './services/db.js'
+import { chain } from 'underscore'
+import {
+  insertNewBrandModel,
+  insertNewTechnicalData,
+  insertNewVehicle,
+  insertNewTransfer,
+  getTransferDetails,
+  getDataFromVIN,
+  loadDataFromFile
+} from './services/index.js'
 
 const codigosAceptados = ['20', '21', '22', '23', '24', '25', '40', '50', '51', '52', '53', '54', '60', '70', '90', '91', '92']
 
@@ -30,41 +31,50 @@ app.get('/buscar', async (req, res) => {
   createPool()
   const bastidor = req
     .query
-    .bastidor
+    ?.bastidor
 
-  let results = await getDataFromVIN(bastidor)
-  results = results.flat(Infinity)
+  const debug = req
+    .query
+    ?.debug
 
-  deletePool()
+  if (bastidor) {
+    let results = await getDataFromVIN(bastidor)
+    results = results.flat(Infinity)
 
-  const obj = {
-    vehicle: {},
-    transfers: []
-  }
+    deletePool()
 
-  results
-    .slice(0, results.length - 1)
-    .forEach((value, key) => {
-      console.log({ value })
-      if (key === 0) {
-        obj.vehicle = {
-          brand: value.marca_itv,
-          model: value.modelo_itv
+    const obj = {
+      vehicle: {},
+      transfers: []
+    }
+
+    results
+      .slice(0, results.length - 1)
+      .forEach((value, key) => {
+        if (debug) console.log({ value })
+
+        if (key === 0) {
+          obj.vehicle = {
+            brand: value.marca_itv,
+            model: value.modelo_itv
+          }
         }
-      }
 
-      obj.transfers.push({
-        plateType: value.cod_clase_mat,
-        firstPlateDate: value.fecha_prim_matriculacion,
-        plateDate: value.fecha_matricula,
-        startTransferDate: value.fecha_tramite,
-        endTransferDate: value.fecha_tramitacion,
-        closeTransferDate: value.fecha_proceso,
-        transferDetails: value.detalles_uuid
+        obj.transfers.push({
+          plateType: value.cod_clase_mat,
+          firstPlateDate: value.fecha_prim_matriculacion,
+          plateDate: value.fecha_matricula,
+          startTransferDate: value.fecha_tramite,
+          writeTransferDate: value.fecha_proceso,
+          endTransferDate: value.fecha_tramitacion,
+          transferDetails: value.detalles_uuid
+        })
       })
-    })
 
-  res.send(obj)
+    res.send(obj)
+  } else {
+    res.send({ Error: 'No ha facilitado un bastidor.' })
+  }
 })
 
 app.get('/buscarDetalleTransferencia', async (req, res) => {
@@ -96,122 +106,371 @@ app.get('/buscarDetalleTransferencia', async (req, res) => {
   res.send(results)
 })
 
-app.get('/insertarDatos', async (req, res) => {
-  let total = 0; let vehiclesInserted = 0; let transfersInserted = 0
+const insertar = async (file) => {
+  console.log(`Fichero: ${file}`)
   createPool()
-  const data = await loadDataFromFile('../DGT-files/export_mensual_trf_202111.txt')
+  let total = 0; let registryInserted = 0
+  const data = await loadDataFromFile(`/Users/franciscojesusbeltranmoreno/dev/DGT-Files/export_mensual_trf_${file}.txt`)
   const output = []
 
-  // Creación de objeto tipo Registro
+  let arrayPromises = []
+  let arrayResolves = []
+
+  // Lectura de datos
   data.forEach(value => {
     if (value.length > 50) {
       const registro = new Registro(value)
       if (codigosAceptados.includes(registro.getCodigoTipo)) { output.push(registro) }
-    } else { console.table([{ 'Fichero completo': 'Línea vacía.' }]) }
+    } else {
+      console.log(`Fichero ${file} leído completamente.`)
+      console.log([{ 'Fichero completo': 'Línea vacía.' }])
+    }
   })
 
-  let vehiclesBrandModelPromises = []
-  let vehiclesTechnicalDataResolve = []
-
-  let vehiclesTechnicalDataPromises = []
-  let vehiclesBrandModelResolve = []
-
-  let vehiclesNewInsertPromises = []
-  let vehiclesNewInsertResolve = []
-
-  let vehiclesNewTransferPromises = []
-  let vehiclesNewTransferResolve = []
-
   // Configuración BBDD
-  const out = []
-  const chunkSize = 100
+  // const out = []
+  const chunkSize = 250
   const totalIterations = output.length
 
   console.log({ filter: totalIterations, raw: data.length })
 
-  // Lecturas de BBDD
-  for (let i = 0; i < totalIterations; i += chunkSize) {
-    // console.log(i)
-    const chunk = output.slice(i, i + chunkSize)
+  const uniqueBrandModel = Object
+    .values(
+      chain(output)
+        .indexBy(function (value) { return [value.marca_itv, value.modelo_itv] })
+        ._wrapped
+    )
 
-    // Guardado de promesas
-    // Nos traemos los UUID de las marcas-modelos y los datos técnicos
-    chunk.forEach(chunkElem => {
-      vehiclesBrandModelPromises.push(getBrandModelUUID(chunkElem.getMarca, chunkElem.getModelo))
-      vehiclesTechnicalDataPromises.push(getTechnicalDataUUID(chunkElem.getMascara))
+  console.log('Insertando Marcas y Modelos.')
+
+  for (let i = 0; i < uniqueBrandModel.length; i += chunkSize) {
+    const chunk = uniqueBrandModel.slice(i, i + chunkSize)
+
+    chunk.forEach(value => {
+      // arrayPromises.push(insertNewBrandModel([value.marca_itv, value.modelo_itv]))
+      arrayPromises.push(insertNewBrandModel([value.marca_itv, value.modelo_itv]))
     })
 
     // Resolución de promesas
-    vehiclesBrandModelResolve = await Promise.all(vehiclesBrandModelPromises)
-    vehiclesTechnicalDataResolve = await Promise.all(vehiclesTechnicalDataPromises)
+    arrayResolves = await Promise.all(arrayPromises)
 
     // Flat arrays
-    vehiclesBrandModelResolve = vehiclesBrandModelResolve.flat(Infinity)
-    vehiclesTechnicalDataResolve = vehiclesTechnicalDataResolve.flat(Infinity)
+    arrayResolves = arrayResolves.flat(Infinity)
 
-    // NOTE: Ahora procedemos a insertar el nuevo vehículo si procede
-    for (let j = 0; j < chunk.length; j++) {
-      const brandModelUUID = vehiclesBrandModelResolve[j]?.brand_model_uuid
-      const vehicleDataUUID = vehiclesTechnicalDataResolve[j]?.technical_data_uuid
-      const registro = chunk[j]
-
-      // TODO: Insertar marcas-modelos que no existen
-      // TODO: Insertar datos técnicos que no existen
-
-      try {
-        vehiclesNewInsertPromises.push(insertNewVehicle(brandModelUUID, vehicleDataUUID, registro.getBastidor,
-          registro.cod_clase_mat, registro.fec_prim_matriculacion, registro.fec_matricula,
-          registro.getFechaTramite, registro.getFechaTramitacion, registro.getFechaProceso))
-      } catch (err) {
-        console.log({ err, registro })
-      }
-    }
-
-    vehiclesNewInsertResolve = await Promise.all(vehiclesNewInsertPromises)
-    vehiclesNewInsertResolve = vehiclesNewInsertResolve.flat(Infinity)
-
-    for (let j = 0; j < chunk.length; j++) {
-      const datosTransferencia = chunk[j].getDatosTransferencia
-
-      try {
-        vehiclesNewTransferPromises.push(insertNewTransfer(datosTransferencia))
-      } catch (err) {
-        console.log(err)
-      }
-
-      out.push({
-        vin: datosTransferencia.bastidor,
-        vehicle_uuid: vehiclesBrandModelResolve[j]?.brand_model_uuid,
-        vehicle_data_technical_uuid: vehiclesTechnicalDataResolve[j]?.technical_data_uuid,
-        vehicle_transfer: datosTransferencia
-      })
-    }
-
-    vehiclesNewTransferResolve = await Promise.all(vehiclesNewTransferPromises)
-    vehiclesNewTransferResolve = vehiclesNewTransferResolve.flat(Infinity)
-
-    // Contadores
-    vehiclesInserted += vehiclesNewInsertResolve.filter(r => r.affectedRows > 0).length
-    transfersInserted += vehiclesNewTransferResolve.filter(r => r.affectedRows > 0).length
+    registryInserted += arrayResolves.filter(r => r.affectedRows > 0).length
     total += chunkSize
 
-    console.clear()
-    console.log(`Total: ${total}/${totalIterations} | Vehiculos Insertados: ${vehiclesInserted} | Transferencias Insertadas: ${transfersInserted}`)
+    // console.clear()
+    // console.log('Insertando Marcas y Modelos')
+    // console.log(`Total: ${total}/${uniqueBrandModel.length} | Registros Insertados: ${registryInserted}`)
 
-    // NOTE: Limpieza de arrays
-    vehiclesBrandModelPromises = []
-    vehiclesBrandModelResolve = []
-
-    vehiclesTechnicalDataPromises = []
-    vehiclesTechnicalDataResolve = []
-
-    vehiclesNewInsertPromises = []
-    vehiclesNewInsertResolve = []
-
-    vehiclesNewTransferPromises = []
-    vehiclesNewTransferResolve = []
+    arrayPromises = []
+    arrayResolves = []
   }
 
-  await deletePool()
-  res.json(out)
+  console.log(`Total: ${total}/${uniqueBrandModel.length} | Registros Insertados: ${registryInserted}`)
+
+  total = 0
+  registryInserted = 0
+
+  const uniqueTechnicalData = Object
+    .values(
+      chain(output)
+        .indexBy(function (value) { return value.getMascara })
+        ._wrapped
+    )
+
+  console.log('Insertando Datos Técnicos')
+
+  for (let i = 0; i < uniqueTechnicalData.length; i += chunkSize) {
+    const chunk = uniqueTechnicalData.slice(i, i + chunkSize)
+
+    chunk.forEach(value => {
+      arrayPromises.push(insertNewTechnicalData(value.getDatosTecnicos))
+    })
+
+    // Resolución de promesas
+    arrayResolves = await Promise.all(arrayPromises)
+
+    // Flat arrays
+    arrayResolves = arrayResolves.flat(Infinity)
+
+    registryInserted += arrayResolves.filter(r => r.affectedRows > 0).length
+    total += chunkSize
+
+    // console.clear()
+    // console.log('Insertando Datos Técnicos')
+    // console.log(`Total: ${total}/${uniqueTechnicalData.length} | Registros Insertados: ${registryInserted}`)
+
+    arrayPromises = []
+    arrayResolves = []
+  }
+
+  console.log(`Total: ${total}/${uniqueTechnicalData.length} | Registros Insertados: ${registryInserted}`)
+  total = 0
+  registryInserted = 0
+
+  const uniqueVehicleData = Object
+    .values(
+      chain(output)
+        .indexBy(function (value) { return [value.bastidor_itv, value.cod_clase_mat, value.fecha_prim_matriculacion, value.fecha_matricula] })
+        ._wrapped
+    )
+
+  console.log('Insertando Vehículos')
+
+  for (let i = 0; i < uniqueVehicleData.length; i += chunkSize) {
+    const chunk = uniqueVehicleData.slice(i, i + chunkSize)
+
+    chunk.forEach(value => {
+      arrayPromises.push(insertNewVehicle(value.getDatosInsertVehicle))
+    })
+
+    // Resolución de promesas
+    arrayResolves = await Promise.all(arrayPromises)
+
+    // Flat arrays
+    arrayResolves = arrayResolves.flat(Infinity)
+
+    registryInserted += arrayResolves.filter(r => r.affectedRows > 0).length
+    total += chunkSize
+
+    // console.clear()
+    // console.log('Insertando Vehículos')
+    // console.log(`Total: ${total}/${uniqueVehicleData.length} | Registros Insertados: ${registryInserted}`)
+
+    arrayPromises = []
+    arrayResolves = []
+  }
+
+  console.log(`Total: ${total}/${uniqueVehicleData.length} | Registros Insertados: ${registryInserted}`)
+  console.log('Insertando Transferencias')
+
+  total = 0
+  registryInserted = 0
+
+  for (let i = 0; i < output.length; i += chunkSize) {
+    const chunk = output.slice(i, i + chunkSize)
+
+    chunk.forEach(value => {
+      arrayPromises.push(insertNewTransfer(value.getDatosInsertTransfer))
+    })
+
+    // Resolución de promesas
+    arrayResolves = await Promise.all(arrayPromises)
+
+    // Flat arrays
+    arrayResolves = arrayResolves.flat(Infinity)
+
+    registryInserted += arrayResolves.filter(r => r.affectedRows > 0).length
+    total += chunkSize
+
+    // console.clear()
+    // console.log('Insertando Transferencias')
+    // console.log(`Total: ${total}/${output.length} | Registros Insertados: ${registryInserted}`)
+
+    arrayPromises = []
+    arrayResolves = []
+  }
+
+  console.log(`Total: ${total}/${output.length} | Registros Insertados: ${registryInserted}`)
+  deletePool()
+}
+
+app.get('/insertarDatosOFF', async (req, res) => {
+  // const year = req.query.year
+  // await insertar(`${year}01`)
+  // await insertar(`${year}02`)
+  // await insertar(`${year}03`)
+  // await insertar(`${year}04`)
+  // await insertar(`${year}05`)
+  // await insertar(`${year}06`)
+  // await insertar(`${year}07`)
+  // await insertar(`${year}08`)
+  // await insertar(`${year}09`)
+  // await insertar(`${year}10`)
+  // await insertar(`${year}11`)
+  // await insertar(`${year}12`)
+
+  res.send('<h1>Este servicio está desactivado.</h1>')
+})
+
+app.get('/insertarDatos', async (req, res) => {
+  const file = req.query.fichero
+  const debug = req.query?.debug
+
+  createPool()
+  let total = 0; let registryInserted = 0
+  const data = await loadDataFromFile(`/Users/franciscojesusbeltranmoreno/dev/DGT-Files/export_mensual_trf_${file}.txt`)
+  const output = []
+
+  let arrayPromises = []
+  let arrayResolves = []
+
+  // Lectura de datos
+  data.forEach(value => {
+    if (value.length > 50) {
+      const registro = new Registro(value)
+      if (codigosAceptados.includes(registro.getCodigoTipo)) { output.push(registro) }
+    } else {
+      res.write(`Fichero ${file} leído completamente.</h1>`)
+      console.log([{ 'Fichero completo': 'Línea vacía.' }])
+    }
+  })
+
+  // Configuración BBDD
+  const chunkSize = 250
+  const totalIterations = output.length
+
+  console.log({ filter: totalIterations, raw: data.length })
+
+  const uniqueBrandModel = Object
+    .values(
+      chain(output)
+        .indexBy(function (value) { return [value.marca_itv, value.modelo_itv] })
+        ._wrapped
+    )
+
+  res.write('<p>Insertando Marcas y Modelos.</p>')
+
+  for (let i = 0; i < uniqueBrandModel.length; i += chunkSize) {
+    const chunk = uniqueBrandModel.slice(i, i + chunkSize)
+
+    chunk.forEach(value => {
+      arrayPromises.push(insertNewBrandModel([value.marca_itv, value.modelo_itv]))
+    })
+
+    // Resolución de promesas
+    arrayResolves = await Promise.all(arrayPromises)
+
+    // Flat arrays
+    arrayResolves = arrayResolves.flat(Infinity)
+
+    registryInserted += arrayResolves.filter(r => r.affectedRows > 0).length
+    total += chunkSize
+
+    if (debug) {
+      console.clear()
+      console.log('Insertando Marcas y Modelos')
+      console.log(`Total: ${total}/${uniqueBrandModel.length} | Registros Insertados: ${registryInserted}`)
+    }
+
+    arrayPromises = []
+    arrayResolves = []
+  }
+
+  res.write(`<p>Total: ${total}/${uniqueBrandModel.length} | Registros Insertados: ${registryInserted}</p>`)
+
+  total = 0
+  registryInserted = 0
+
+  const uniqueTechnicalData = Object
+    .values(
+      chain(output)
+        .indexBy(function (value) { return value.getMascara })
+        ._wrapped
+    )
+
+  res.write('<p>Insertando Datos Técnicos</p>')
+
+  for (let i = 0; i < uniqueTechnicalData.length; i += chunkSize) {
+    const chunk = uniqueTechnicalData.slice(i, i + chunkSize)
+
+    chunk.forEach(value => {
+      arrayPromises.push(insertNewTechnicalData(value.getDatosTecnicos))
+    })
+
+    // Resolución de promesas
+    arrayResolves = await Promise.all(arrayPromises)
+
+    // Flat arrays
+    arrayResolves = arrayResolves.flat(Infinity)
+
+    registryInserted += arrayResolves.filter(r => r.affectedRows > 0).length
+    total += chunkSize
+
+    if (debug) {
+      console.clear()
+      console.log('Insertando Datos Técnicos')
+      console.log(`Total: ${total}/${uniqueTechnicalData.length} | Registros Insertados: ${registryInserted}`)
+    }
+
+    arrayPromises = []
+    arrayResolves = []
+  }
+
+  res.write(`<p>Total: ${total}/${uniqueTechnicalData.length} | Registros Insertados: ${registryInserted}</p>`)
+  total = 0
+  registryInserted = 0
+
+  const uniqueVehicleData = Object
+    .values(
+      chain(output)
+        .indexBy(function (value) { return [value.bastidor_itv, value.cod_clase_mat, value.fecha_prim_matriculacion, value.fecha_matricula] })
+        ._wrapped
+    )
+
+  res.write('<p>Insertando Vehículos</p>')
+
+  for (let i = 0; i < uniqueVehicleData.length; i += chunkSize) {
+    const chunk = uniqueVehicleData.slice(i, i + chunkSize)
+
+    chunk.forEach(value => {
+      arrayPromises.push(insertNewVehicle(value.getDatosInsertVehicle))
+    })
+
+    // Resolución de promesas
+    arrayResolves = await Promise.all(arrayPromises)
+
+    // Flat arrays
+    arrayResolves = arrayResolves.flat(Infinity)
+
+    registryInserted += arrayResolves.filter(r => r.affectedRows > 0).length
+    total += chunkSize
+
+    if (debug) {
+      console.clear()
+      console.log('Insertando Vehículos')
+      console.log(`Total: ${total}/${uniqueVehicleData.length} | Registros Insertados: ${registryInserted}`)
+    }
+
+    arrayPromises = []
+    arrayResolves = []
+  }
+
+  res.write(`<p>Total: ${total}/${uniqueVehicleData.length} | Registros Insertados: ${registryInserted}</p>`)
+  res.write('<p>Insertando Transferencias</p>')
+
+  total = 0
+  registryInserted = 0
+
+  for (let i = 0; i < output.length; i += chunkSize) {
+    const chunk = output.slice(i, i + chunkSize)
+
+    chunk.forEach(value => {
+      arrayPromises.push(insertNewTransfer(value.getDatosInsertTransfer))
+    })
+
+    // Resolución de promesas
+    arrayResolves = await Promise.all(arrayPromises)
+
+    // Flat arrays
+    arrayResolves = arrayResolves.flat(Infinity)
+
+    registryInserted += arrayResolves.filter(r => r.affectedRows > 0).length
+    total += chunkSize
+
+    if (debug) {
+      console.clear()
+      console.log('Insertando Transferencias')
+      console.log(`Total: ${total}/${output.length} | Registros Insertados: ${registryInserted}`)
+    }
+
+    arrayPromises = []
+    arrayResolves = []
+  }
+
+  res.write(`<p>Total: ${total}/${output.length} | Registros Insertados: ${registryInserted}</p>`)
+  res.end()
+  deletePool()
 })

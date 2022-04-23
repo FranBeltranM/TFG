@@ -4,9 +4,11 @@
   "description": "Backend (NodeJS, MYSQL)",
   "main": "index.js",
   "scripts": {
-    "build": "babel index.js -d dist",
-    "start": "babel-node index.js",
-    "dev": "nodemon --exec babel-node index.js"
+    "build-original": "babel index.js -d dist",
+    "build-prod": "npx babel index.js -d dist && npx babel config.js -d dist && npx babel classes -d dist/classes && npx babel services -d dist/services && npx babel src -d dist/src && npx babel routes -d dist/routes",
+    "start-original": "babel-node index.js",
+    "dev": "nodemon --exec babel-node index.js",
+    "start-prod": "node build/index.js"
   },
   "author": "Fco. Jesús Beltrán Moreno",
   "license": "ISC",
@@ -27,6 +29,7 @@
     "express": "^4.17.1",
     "fs": "^0.0.1-security",
     "moment": "^2.29.1",
-    "mysql": "^2.18.1"
+    "mysql": "^2.18.1",
+    "underscore": "^1.13.2"
   }
 }
