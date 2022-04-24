@@ -10,7 +10,8 @@ import {
   insertNewTransfer,
   getTransferDetails,
   getDataFromVIN,
-  loadDataFromFile
+  loadDataFromFile,
+  getDateFromLastInsert
 } from './services/index.js'
 
 const codigosAceptados = ['20', '21', '22', '23', '24', '25', '40', '50', '51', '52', '53', '54', '60', '70', '90', '91', '92']
@@ -472,5 +473,14 @@ app.get('/insertarDatos', async (req, res) => {
 
   res.write(`<p>Total: ${total}/${output.length} | Registros Insertados: ${registryInserted}</p>`)
   res.end()
+  deletePool()
+})
+
+app.get('/fechaUltimaInsercion', async (req, res) => {
+  createPool()
+  const lastInsertDate = await getDateFromLastInsert()
+  res.json({
+    date: lastInsertDate[0].fecha
+  })
   deletePool()
 })

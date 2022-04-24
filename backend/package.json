@@ -8,28 +8,30 @@
     "build-prod": "npx babel index.js -d dist && npx babel config.js -d dist && npx babel classes -d dist/classes && npx babel services -d dist/services && npx babel src -d dist/src && npx babel routes -d dist/routes",
     "start-original": "babel-node index.js",
     "dev": "nodemon --exec babel-node index.js",
+    "upload-prod": "scp -p -r ./dist/* root@82.223.23.24:/var/www/api-tfg.franbeltran.es",
+    "build-deploy-prod": "npm run build-prod && npm run upload-prod",
     "start-prod": "node build/index.js"
   },
   "author": "Fco. Jesús Beltrán Moreno",
   "license": "ISC",
   "devDependencies": {
-    "@babel/cli": "^7.16.0",
-    "@babel/core": "^7.16.0",
-    "@babel/node": "^7.16.0",
-    "@babel/preset-env": "^7.16.4",
-    "eslint": "^7.32.0",
-    "eslint-config-standard": "^16.0.3",
-    "eslint-plugin-import": "^2.25.4",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^5.2.0",
-    "nodemon": "^2.0.15"
+    "@babel/cli": "7.16.0",
+    "@babel/core": "7.16.0",
+    "@babel/node": "7.16.0",
+    "@babel/preset-env": "7.16.4",
+    "eslint": "7.32.0",
+    "eslint-config-standard": "16.0.3",
+    "eslint-plugin-import": "2.25.4",
+    "eslint-plugin-node": "11.1.0",
+    "eslint-plugin-promise": "5.2.0",
+    "nodemon": "2.0.15"
   },
   "dependencies": {
-    "dotenv": "^10.0.0",
-    "express": "^4.17.1",
-    "fs": "^0.0.1-security",
-    "moment": "^2.29.1",
-    "mysql": "^2.18.1",
-    "underscore": "^1.13.2"
+    "dotenv": "10.0.0",
+    "express": "4.17.1",
+    "fs": "0.0.1-security",
+    "moment": "2.29.1",
+    "mysql": "2.18.1",
+    "underscore": "1.13.2"
   }
 }

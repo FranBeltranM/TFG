@@ -103,3 +103,13 @@ export const insertNewTechnicalData = async (dataTechnical) => {
 
   return data
 }
+
+export const getDateFromLastInsert = async () => {
+  const sqlQuery = `SELECT fecha_proceso as fecha
+                    FROM Transferencia
+                    ORDER BY id DESC
+                    LIMIT 1`
+  const data = query(sqlQuery)
+
+  return data
+}
