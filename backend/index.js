@@ -42,8 +42,6 @@ app.get('/buscar', async (req, res) => {
     let results = await getDataFromVIN(bastidor)
     results = results.flat(Infinity)
 
-    deletePool()
-
     const obj = {
       vehicle: {},
       transfers: []
@@ -57,7 +55,14 @@ app.get('/buscar', async (req, res) => {
         if (key === 0) {
           obj.vehicle = {
             brand: value.marca_itv,
-            model: value.modelo_itv
+            model: value.modelo_itv,
+            plateType: value.clase_matricula,
+            vin: value.bastidor_itv,
+            fuel: value.tipo_combustible,
+            engineSize: value.cilindrada_itv,
+            fiscalHP: value.potencia_itv,
+            emissions: value.nivel_emisiones_euro_itv,
+            firstProvince: value.provincia_mat
           }
         }
 
@@ -68,7 +73,13 @@ app.get('/buscar', async (req, res) => {
           startTransferDate: value.fecha_tramite,
           writeTransferDate: value.fecha_proceso,
           endTransferDate: value.fecha_tramitacion,
-          transferDetails: value.detalles_uuid
+          transferDetails: value.detalles_uuid,
+          province: value.cod_provincia_veh,
+          typeTransfer: value.tipo_tramite,
+          zipCode: value.codigo_postal,
+          person: value.persona_fisica_juridica,
+          typeServiceVehicle: value.tipo_servicio,
+          City: value.municipio
         })
       })
 
@@ -76,36 +87,38 @@ app.get('/buscar', async (req, res) => {
   } else {
     res.send({ Error: 'No ha facilitado un bastidor.' })
   }
-})
 
-app.get('/buscarDetalleTransferencia', async (req, res) => {
-  createPool()
-  const transferDetailsUUID = req
-    .query
-    .transferDetails
-
-  const results = await getTransferDetails(transferDetailsUUID)
   deletePool()
-
-  const {
-    ind_precinto,
-    ind_embargo,
-    localidad_vehiculo,
-    cod_provincia_mat,
-    cod_provincia_veh,
-    clave_tramite,
-    codigo_postal,
-    persona_fisica_juridica,
-    servicio_itv,
-    municipio,
-    renting,
-    ind_baja_def,
-    ind_baja_temp,
-    ind_sustraccion
-  } = results[0]
-
-  res.send(results)
 })
+
+// app.get('/buscarDetalleTransferencia', async (req, res) => {
+//   createPool()
+//   const transferDetailsUUID = req
+//     .query
+//     .transferDetails
+
+//   const results = await getTransferDetails(transferDetailsUUID)
+//   deletePool()
+
+//   const {
+//     ind_precinto,
+//     ind_embargo,
+//     localidad_vehiculo,
+//     cod_provincia_mat,
+//     cod_provincia_veh,
+//     clave_tramite,
+//     codigo_postal,
+//     persona_fisica_juridica,
+//     servicio_itv,
+//     municipio,
+//     renting,
+//     ind_baja_def,
+//     ind_baja_temp,
+//     ind_sustraccion
+//   } = results[0]
+
+//   res.send(results)
+// })
 
 const insertar = async (file) => {
   console.log(`Fichero: ${file}`)
