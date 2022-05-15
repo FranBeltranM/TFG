@@ -1,7 +1,7 @@
 import express from 'express'
 import dotenv from 'dotenv'
 import Registro from './classes/vehiculo.js'
-import { createPool, deletePool } from './services/db.js'
+import { createPool, deletePool, isPoolOpen } from './services/db.js'
 import { chain } from 'underscore'
 import {
   insertNewBrandModel,
@@ -30,6 +30,7 @@ app.get('/', (req, res) => {
 
 app.get('/buscar', async (req, res) => {
   createPool()
+
   const bastidor = req
     .query
     ?.bastidor
@@ -88,7 +89,7 @@ app.get('/buscar', async (req, res) => {
     res.send({ Error: 'No ha facilitado un bastidor.' })
   }
 
-  deletePool()
+  await deletePool()
 })
 
 // app.get('/buscarDetalleTransferencia', async (req, res) => {
@@ -292,8 +293,8 @@ const insertar = async (file) => {
 }
 
 app.get('/insertarDatosOFF', async (req, res) => {
-  // const year = req.query.year
-  // await insertar(`${year}01`)
+  // const { year, month } = req.query
+  // await insertar(`${year}${month}`)
   // await insertar(`${year}02`)
   // await insertar(`${year}03`)
   // await insertar(`${year}04`)
@@ -495,5 +496,5 @@ app.get('/fechaUltimaInsercion', async (req, res) => {
   res.json({
     date: lastInsertDate[0].fecha
   })
-  deletePool()
+  await deletePool()
 })
