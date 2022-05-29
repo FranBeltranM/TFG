@@ -6,7 +6,9 @@
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "upload-prod": "scp -p -r ./.next/* root@82.223.23.24:/var/www/web-tfg.franbeltran.es",
+    "build-deploy-prod": "npm run build && npm run upload-prod"
   },
   "dependencies": {
     "moment": "^2.29.3",
