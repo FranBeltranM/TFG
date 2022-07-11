@@ -1,7 +1,11 @@
 import { promises as fs } from 'fs'
-import { query } from './db'
+import { query, createPool, deletePool } from './db'
+import Registro from '../classes/vehiculo.js'
+import { chain } from 'underscore'
 
 // https://blog.logrocket.com/build-rest-api-node-express-mysql/
+
+const codigosAceptados = ['20', '21', '22', '23', '24', '25', '40', '50', '51', '52', '53', '54', '60', '70', '90', '91', '92']
 
 export const loadDataFromFile = async (file) => {
   const data = await fs.readFile(file, 'latin1')
@@ -112,4 +116,175 @@ export const getDateFromLastInsert = async () => {
   const data = query(sqlQuery)
 
   return data
+}
+
+export const insertar = async (file) => {
+  console.log(`Fichero: ${file}`)
+  createPool()
+  let total = 0; let registryInserted = 0
+  const data = await loadDataFromFile(`/Users/franciscojesusbeltranmoreno/dev/DGT-Files/export_mensual_trf_${file}.txt`)
+  const output = []
+
+  let arrayPromises = []
+  let arrayResolves = []
+
+  // Lectura de datos
+  data.forEach(value => {
+    if (value.length > 50) {
+      const registro = new Registro(value)
+      if (codigosAceptados.includes(registro.getCodigoTipo)) { output.push(registro) }
+    } else {
+      console.log(`Fichero ${file} leído completamente.`)
+      console.log([{ 'Fichero completo': 'Línea vacía.' }])
+    }
+  })
+
+  // Configuración BBDD
+  // const out = []
+  const chunkSize = 250
+  const totalIterations = output.length
+
+  console.log({ filter: totalIterations, raw: data.length })
+
+  const uniqueBrandModel = Object
+    .values(
+      chain(output)
+        .indexBy(function (value) { return [value.marca_itv, value.modelo_itv] })
+        ._wrapped
+    )
+
+  console.log('Insertando Marcas y Modelos.')
+
+  for (let i = 0; i < uniqueBrandModel.length; i += chunkSize) {
+    const chunk = uniqueBrandModel.slice(i, i + chunkSize)
+
+    chunk.forEach(value => {
+      // arrayPromises.push(insertNewBrandModel([value.marca_itv, value.modelo_itv]))
+      arrayPromises.push(insertNewBrandModel([value.marca_itv, value.modelo_itv]))
+    })
+
+    // Resolución de promesas
+    arrayResolves = await Promise.all(arrayPromises)
+
+    // Flat arrays
+    arrayResolves = arrayResolves.flat(Infinity)
+
+    registryInserted += arrayResolves.filter(r => r.affectedRows > 0).length
+    total += chunkSize
+
+    // console.clear()
+    // console.log('Insertando Marcas y Modelos')
+    // console.log(`Total: ${total}/${uniqueBrandModel.length} | Registros Insertados: ${registryInserted}`)
+
+    arrayPromises = []
+    arrayResolves = []
+  }
+
+  console.log(`Total: ${total}/${uniqueBrandModel.length} | Registros Insertados: ${registryInserted}`)
+
+  total = 0
+  registryInserted = 0
+
+  const uniqueTechnicalData = Object
+    .values(
+      chain(output)
+        .indexBy(function (value) { return value.getMascara })
+        ._wrapped
+    )
+
+  console.log('Insertando Datos Técnicos')
+
+  for (let i = 0; i < uniqueTechnicalData.length; i += chunkSize) {
+    const chunk = uniqueTechnicalData.slice(i, i + chunkSize)
+
+    chunk.forEach(value => {
+      arrayPromises.push(insertNewTechnicalData(value.getDatosTecnicos))
+    })
+
+    // Resolución de promesas
+    arrayResolves = await Promise.all(arrayPromises)
+
+    // Flat arrays
+    arrayResolves = arrayResolves.flat(Infinity)
+
+    registryInserted += arrayResolves.filter(r => r.affectedRows > 0).length
+    total += chunkSize
+
+    // console.clear()
+    // console.log('Insertando Datos Técnicos')
+    // console.log(`Total: ${total}/${uniqueTechnicalData.length} | Registros Insertados: ${registryInserted}`)
+
+    arrayPromises = []
+    arrayResolves = []
+  }
+
+  console.log(`Total: ${total}/${uniqueTechnicalData.length} | Registros Insertados: ${registryInserted}`)
+  total = 0
+  registryInserted = 0
+
+  const uniqueVehicleData = Object
+    .values(
+      chain(output)
+        .indexBy(function (value) { return [value.bastidor_itv, value.cod_clase_mat, value.fecha_prim_matriculacion, value.fecha_matricula] })
+        ._wrapped
+    )
+
+  console.log('Insertando Vehículos')
+
+  for (let i = 0; i < uniqueVehicleData.length; i += chunkSize) {
+    const chunk = uniqueVehicleData.slice(i, i + chunkSize)
+
+    chunk.forEach(value => {
+      arrayPromises.push(insertNewVehicle(value.getDatosInsertVehicle))
+    })
+
+    // Resolución de promesas
+    arrayResolves = await Promise.all(arrayPromises)
+
+    // Flat arrays
+    arrayResolves = arrayResolves.flat(Infinity)
+
+    registryInserted += arrayResolves.filter(r => r.affectedRows > 0).length
+    total += chunkSize
+
+    // console.clear()
+    // console.log('Insertando Vehículos')
+    // console.log(`Total: ${total}/${uniqueVehicleData.length} | Registros Insertados: ${registryInserted}`)
+
+    arrayPromises = []
+    arrayResolves = []
+  }
+
+  console.log(`Total: ${total}/${uniqueVehicleData.length} | Registros Insertados: ${registryInserted}`)
+  console.log('Insertando Transferencias')
+
+  total = 0
+  registryInserted = 0
+
+  for (let i = 0; i < output.length; i += chunkSize) {
+    const chunk = output.slice(i, i + chunkSize)
+
+    chunk.forEach(value => {
+      arrayPromises.push(insertNewTransfer(value.getDatosInsertTransfer))
+    })
+
+    // Resolución de promesas
+    arrayResolves = await Promise.all(arrayPromises)
+
+    // Flat arrays
+    arrayResolves = arrayResolves.flat(Infinity)
+
+    registryInserted += arrayResolves.filter(r => r.affectedRows > 0).length
+    total += chunkSize
+
+    // console.clear()
+    // console.log('Insertando Transferencias')
+    // console.log(`Total: ${total}/${output.length} | Registros Insertados: ${registryInserted}`)
+
+    arrayPromises = []
+    arrayResolves = []
+  }
+
+  console.log(`Total: ${total}/${output.length} | Registros Insertados: ${registryInserted}`)
+  deletePool()
 }
