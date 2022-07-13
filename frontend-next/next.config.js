@@ -1,12 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  swcMinify: false,
+  reactStrictMode: false,
   async rewrites() {
     return [
       {
         source: '/api/:path*',
-        // destination: 'https://api-tfg.franbeltran.es/:path*',
-        destination: 'http://localhost:3000/:path*',
+        destination: 'https://api-tfg.franbeltran.es/:path*',
+        // destination: 'http://localhost:3000/:path*',
       },
     ]
   },

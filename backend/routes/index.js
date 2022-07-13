@@ -6,6 +6,7 @@ import {
   getDateFromLastInsert,
   getTransferDetails
 } from '../services/index.js'
+import { getVinFromPlate } from '../services/NorautoScrapper.js'
 
 const router = express.Router()
 const isInsertionActivated = false
@@ -19,13 +20,19 @@ router.get('/', (req, res) => {
 router.get('/buscar', async (req, res) => {
   createPool()
 
-  const bastidor = req
+  let bastidor = req
     .query
     ?.bastidor
+
+  const { plate } = req.query
 
   const debug = req
     .query
     ?.debug
+
+  if (plate) {
+    bastidor = await getVinFromPlate(plate)
+  }
 
   if (bastidor) {
     let results = await getDataFromVIN(bastidor)
@@ -68,7 +75,7 @@ router.get('/buscar', async (req, res) => {
           zipCode: value.codigo_postal,
           person: value.persona_fisica_juridica,
           typeServiceVehicle: value.tipo_servicio,
-          City: value.municipio
+          city: value.municipio
         })
       })
 
@@ -125,6 +132,12 @@ router.get('/buscarDetalleTransferencia', async (req, res) => {
   // } = results[0]
 
   res.send(results)
+})
+
+router.get('/getVinFromPlate', async (req, res) => {
+  const { plate } = req.query
+
+  res.send(await getVinFromPlate(plate))
 })
 
 export { router }

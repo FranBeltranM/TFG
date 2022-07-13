@@ -79,9 +79,25 @@ export const insertNewTransfer = async (transferData) => {
 }
 
 export const getTransferDetails = async (transferDetailUUID) => {
-  const sqlQuery = `SELECT *
-                    FROM TransferenciaDetalle
-                    WHERE BIN_TO_UUID(id, 1) = ?`
+  const sqlQuery = `
+    SELECT
+      BIN_TO_UUID(id, 1) as id,
+      ind_precinto,
+      ind_embargo,
+      localidad_vehiculo,
+      cod_provincia_mat,
+      cod_provincia_veh,
+      clave_tramite,
+      codigo_postal,
+      persona_fisica_juridica,
+      servicio_itv,
+      municipio,
+      renting,
+      ind_baja_def,
+      ind_baja_temp,
+      ind_sustraccion
+    FROM TransferenciaDetalle
+    WHERE id = UUID_TO_BIN(?, 1)`
   const data = query(sqlQuery, [transferDetailUUID])
 
   return data

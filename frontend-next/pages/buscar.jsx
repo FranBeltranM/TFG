@@ -1,11 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
+
 import Layout from '../components/Layout'
+import Image from 'next/image'
+import meme from '../public/homer-meme.gif'
+import spinner from '../public/preloader.gif'
 
 import moment from 'moment'
 
 const getDataFromBastidor = async bastidor => {
-  const URL = `/api/buscar?bastidor=${bastidor}`
+  const regex = /[0-9]{4}[a-zA-Z]{3}/
+  const isPlate = regex.test(bastidor)
+
+  const URL = isPlate
+    ? `/api/buscar?plate=${bastidor}`
+    : `/api/buscar?bastidor=${bastidor}`
 
   const data = await fetch(URL, {
     method: 'GET',
@@ -22,15 +31,24 @@ const getDataFromBastidor = async bastidor => {
 export default function Buscar({ query }) {
   const router = useRouter()
   const [datos, setDatos] = useState(null)
+  const [estado, setEstado] = useState('loading')
   const [transferencias, setTransferencias] = useState([])
 
   useEffect(() => {
     const getAsset = async _ => {
       if (router.query.bastidor !== undefined) {
-        const result = await getDataFromBastidor(router.query.bastidor)
-
-        setDatos(result.vehicle)
-        setTransferencias(result.transfers)
+        try {
+          const result = await getDataFromBastidor(router.query.bastidor)
+          if (result.transfers.length > 0) {
+            setDatos(result.vehicle)
+            setTransferencias(result.transfers)
+            setEstado('ok')
+          } else {
+            setEstado('no_results')
+          }
+        } catch (err) {
+          setEstado('error')
+        }
       }
     }
 
@@ -39,7 +57,28 @@ export default function Buscar({ query }) {
 
   return (
     <>
-      {datos && (
+      {estado === 'loading' && (
+        <section className='flex flex-col items-center justify-center p-4'>
+          <Image
+            src={spinner}
+            alt='Loading'
+            width={spinner.width / 2}
+            height={spinner.height / 2}
+          />
+          <h1 className='mt-8 mb-8 text-xl font-bold'>
+            Obteniendo datos, espere...
+          </h1>
+        </section>
+      )}
+      {estado === 'error' && (
+        <section className='flex flex-col items-center justify-center p-4'>
+          <h1 className='mt-8 mb-8 text-xl font-bold'>
+            Se ha producido un error, inténtelo de nuevo más tarde.
+          </h1>
+        </section>
+      )}
+
+      {estado === 'ok' && (
         <div className='flex flex-col items-center justify-center p-4'>
           <div>
             <h1 className='mb-8 text-3xl font-bold'>
@@ -55,7 +94,7 @@ export default function Buscar({ query }) {
         </div>
       )}
 
-      {datos && (
+      {estado === 'ok' && (
         <section className='flex flex-col items-center justify-center p-4'>
           <div>
             <h1 className='mb-8 text-3xl font-bold'>
@@ -77,7 +116,7 @@ export default function Buscar({ query }) {
         </section>
       )}
 
-      {datos && (
+      {estado === 'ok' && (
         <section className='flex flex-col items-center justify-center p-4'>
           <div>
             <h1 className='mb-8 text-3xl font-bold'>
@@ -103,7 +142,7 @@ export default function Buscar({ query }) {
                         {moment(item.writeTransferDate).format('YYYY/MM/DD')}
                       </td>
                       <td className='p-4'>{item.typeTransfer}</td>
-                      <td className='p-4'>{item.City}</td>
+                      <td className='p-4'>{item.city}</td>
                       <td className='p-4 text-center'>n/d</td>
                     </tr>
                   ) : (
@@ -115,7 +154,7 @@ export default function Buscar({ query }) {
                         {moment(item.writeTransferDate).format('YYYY/MM/DD')}
                       </td>
                       <td className='p-4'>{item.typeTransfer}</td>
-                      <td className='p-4'>{item.City}</td>
+                      <td className='p-4'>{item.city}</td>
                       <td className='p-4 text-center'>n/d</td>
                     </tr>
                   )
@@ -127,13 +166,27 @@ export default function Buscar({ query }) {
                           {moment(item.writeTransferDate).format('YYYY/MM/DD')}
                         </td>
                         <td className='p-4'>{item.typeTransfer}</td>
-                        <td className='p-4'>{item.City}</td>
+                        <td className='p-4'>{item.city}</td>
                         <td className='p-4 text-center'>n/d</td>
                       </tr>
                     ))} */}
               </tbody>
             </table>
           </div>
+        </section>
+      )}
+
+      {estado === 'no_results' && (
+        <section className='flex flex-col items-center justify-center p-4'>
+          <h1 className='mt-8 mb-8 text-2xl font-bold'>
+            No disponemos de datos del vehículo.
+          </h1>
+          <Image
+            src={meme}
+            alt='Homer Simpson'
+            width={meme.width / 2}
+            height={meme.height / 2}
+          />
         </section>
       )}
     </>
