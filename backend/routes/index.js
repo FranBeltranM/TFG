@@ -2,33 +2,25 @@ import express from 'express'
 import { createPool, deletePool } from '../services/db.js'
 import {
   getDataFromVIN,
-  insertar,
   getDateFromLastInsert,
-  getTransferDetails
+  getTransferDetails,
 } from '../services/index.js'
 import { getVinFromPlate } from '../services/NorautoScrapper.js'
 
 const router = express.Router()
-const isInsertionActivated = false
+// const isInsertionActivated = true
 
 router.get('/', (req, res) => {
-  res
-    .status(200)
-    .send('Hola')
+  res.status(200).send('Hola')
 })
 
 router.get('/buscar', async (req, res) => {
   createPool()
 
-  let bastidor = req
-    .query
-    ?.bastidor
-
+  let bastidor = req.query?.bastidor
   const { plate } = req.query
 
-  const debug = req
-    .query
-    ?.debug
+  const debug = req.query?.debug
 
   if (plate) {
     bastidor = await getVinFromPlate(plate)
@@ -40,44 +32,42 @@ router.get('/buscar', async (req, res) => {
 
     const obj = {
       vehicle: {},
-      transfers: []
+      transfers: [],
     }
 
-    results
-      .slice(0, results.length - 1)
-      .forEach((value, key) => {
-        if (debug) console.log({ value })
+    results.slice(0, results.length - 1).forEach((value, key) => {
+      if (debug) console.log({ value })
 
-        if (key === 0) {
-          obj.vehicle = {
-            brand: value.marca_itv,
-            model: value.modelo_itv,
-            plateType: value.clase_matricula,
-            vin: value.bastidor_itv,
-            fuel: value.tipo_combustible,
-            engineSize: value.cilindrada_itv,
-            fiscalHP: value.potencia_itv,
-            emissions: value.nivel_emisiones_euro_itv,
-            firstProvince: value.provincia_mat
-          }
+      if (key === 0) {
+        obj.vehicle = {
+          brand: value.marca_itv,
+          model: value.modelo_itv,
+          plateType: value.clase_matricula,
+          vin: value.bastidor_itv,
+          fuel: value.tipo_combustible,
+          engineSize: value.cilindrada_itv,
+          fiscalHP: value.potencia_itv,
+          emissions: value.nivel_emisiones_euro_itv,
+          firstProvince: value.provincia_mat,
         }
+      }
 
-        obj.transfers.push({
-          plateType: value.cod_clase_mat,
-          firstPlateDate: value.fecha_prim_matriculacion,
-          plateDate: value.fecha_matricula,
-          startTransferDate: value.fecha_tramite,
-          writeTransferDate: value.fecha_proceso,
-          endTransferDate: value.fecha_tramitacion,
-          transferDetails: value.detalles_uuid,
-          province: value.cod_provincia_veh,
-          typeTransfer: value.tipo_tramite,
-          zipCode: value.codigo_postal,
-          person: value.persona_fisica_juridica,
-          typeServiceVehicle: value.tipo_servicio,
-          city: value.municipio
-        })
+      obj.transfers.push({
+        plateType: value.cod_clase_mat,
+        firstPlateDate: value.fecha_prim_matriculacion,
+        plateDate: value.fecha_matricula,
+        startTransferDate: value.fecha_tramite,
+        writeTransferDate: value.fecha_proceso,
+        endTransferDate: value.fecha_tramitacion,
+        transferDetails: value.detalles_uuid,
+        province: value.cod_provincia_veh,
+        typeTransfer: value.tipo_tramite,
+        zipCode: value.codigo_postal,
+        person: value.persona_fisica_juridica,
+        typeServiceVehicle: value.tipo_servicio,
+        city: value.municipio,
       })
+    })
 
     res.send(obj)
   } else {
@@ -87,32 +77,23 @@ router.get('/buscar', async (req, res) => {
   await deletePool()
 })
 
-router.get('/insertarDatosOFF', async (req, res) => {
-  if (isInsertionActivated) {
-    const { year, month } = req.query
-    await insertar(`${year}${month}`)
-  } else {
-    res.send('<h1>Este servicio está desactivado.</h1>')
-  }
-})
+// router.get('/insertarDatosOFF',
+// })
 
 router.get('/fechaUltimaInsercion', async (req, res) => {
   createPool()
   const lastInsertDate = await getDateFromLastInsert()
   res.json({
-    date: lastInsertDate[0].fecha
+    date: lastInsertDate[0].fecha,
   })
   await deletePool()
 })
 
 router.get('/buscarDetalleTransferencia', async (req, res) => {
   createPool()
-  const transferDetailsUUID = req
-    .query
-    .transferDetails
+  const transferDetailsUUID = req.query.transferDetails
 
   const results = await getTransferDetails(transferDetailsUUID)
-  deletePool()
 
   // const {
   //   ind_precinto,
@@ -132,6 +113,7 @@ router.get('/buscarDetalleTransferencia', async (req, res) => {
   // } = results[0]
 
   res.send(results)
+  await deletePool()
 })
 
 router.get('/getVinFromPlate', async (req, res) => {

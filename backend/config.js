@@ -12,8 +12,8 @@ const config = {
     user: process.env.DDBB_USER,
     password: process.env.DDBB_PASSWORD,
     database: process.env.DDBB_DATABASE,
-    timezone: 'Europe/Paris'
-  }
+    timezone: 'Europe/Paris',
+  },
 }
 
 // https://stackoverflow.com/questions/67159415/perform-multiple-sequelize-query-with-multiple-threads
