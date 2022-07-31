@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 
 import Layout from '../components/Layout'
@@ -7,53 +6,14 @@ import meme from '../public/homer-meme.gif'
 import spinner from '../public/preloader.gif'
 
 import moment from 'moment'
+import useFecthDataSearch from '../components/hooks/useFetchDataSearch'
 
-const getDataFromBastidor = async bastidor => {
-  const regex = /[0-9]{4}[a-zA-Z]{3}/
-  const isPlate = regex.test(bastidor)
-
-  const URL = isPlate
-    ? `/api/buscar?plate=${bastidor}`
-    : `/api/buscar?bastidor=${bastidor}`
-
-  const data = await fetch(URL, {
-    method: 'GET',
-    headers: new Headers({
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-    }),
-  })
-  const result = await data.json()
-
-  return result
-}
-
-export default function Buscar({ query }) {
+export default function Buscar() {
   const router = useRouter()
-  const [datos, setDatos] = useState(null)
-  const [estado, setEstado] = useState('loading')
-  const [transferencias, setTransferencias] = useState([])
 
-  useEffect(() => {
-    const getAsset = async _ => {
-      if (router.query.bastidor !== undefined) {
-        try {
-          const result = await getDataFromBastidor(router.query.bastidor)
-          if (result.transfers.length > 0) {
-            setDatos(result.vehicle)
-            setTransferencias(result.transfers)
-            setEstado('ok')
-          } else {
-            setEstado('no_results')
-          }
-        } catch (err) {
-          setEstado('error')
-        }
-      }
-    }
-
-    getAsset()
-  }, [router.query.bastidor])
+  const { datos, estado, transferencias } = useFecthDataSearch(
+    router.query.bastidor
+  )
 
   return (
     <>
@@ -159,17 +119,6 @@ export default function Buscar({ query }) {
                     </tr>
                   )
                 )}
-
-                {/* {transferencias.map((item, key) => (
-                      <tr key={key}>
-                        <td className='p-4'>
-                          {moment(item.writeTransferDate).format('YYYY/MM/DD')}
-                        </td>
-                        <td className='p-4'>{item.typeTransfer}</td>
-                        <td className='p-4'>{item.city}</td>
-                        <td className='p-4 text-center'>n/d</td>
-                      </tr>
-                    ))} */}
               </tbody>
             </table>
           </div>

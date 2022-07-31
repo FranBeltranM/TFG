@@ -1,26 +1,8 @@
-import { useState, useEffect } from 'react'
+import useDateLastInsert from './hooks/useDateLastInsert'
 import { Logo } from './Logo'
-import moment from 'moment'
-
-const getLastInserctionDate = async () => {
-  const res = await fetch('api/fechaUltimaInsercion')
-  const data = await res.json()
-
-  return data.date
-}
 
 export function Header() {
-  const [fecha, setDate] = useState(null)
-
-  useEffect(() => {
-    const getAsset = async _ => {
-      const result = await getLastInserctionDate()
-
-      setDate(moment(result).format('DD/MM/YYYY'))
-    }
-
-    getAsset()
-  }, [])
+  const fecha = useDateLastInsert()
 
   return (
     <header className='grid grid-cols-2 items-center justify-items-center gap-2 p-8'>

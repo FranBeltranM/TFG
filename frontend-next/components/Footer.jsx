@@ -15,7 +15,7 @@ export function Footer() {
         <span className='px-2'>•</span>
         <a
           className='px-2 underline decoration-dashed decoration-1 underline-offset-4 hover:decoration-violet-400'
-          href='./'
+          href='https://github.com/FranBeltranM/'
           target='_blank'
           rel='noreferrer'
         >
