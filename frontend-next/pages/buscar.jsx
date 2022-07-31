@@ -1,12 +1,12 @@
+import Layout from '../components/Layout'
 import { useRouter } from 'next/router'
 
-import Layout from '../components/Layout'
-import Image from 'next/image'
-import meme from '../public/homer-meme.gif'
-import spinner from '../public/preloader.gif'
-
-import moment from 'moment'
 import useFecthDataSearch from '../components/hooks/useFetchDataSearch'
+
+import { NoResults } from '../components/Results/NoResults'
+import { Loading } from '../components/Results/LoadingResults'
+import { Error } from '../components/Results/ErrorResults'
+import { ShowResults } from '../components/Results/showResults'
 
 export default function Buscar() {
   const router = useRouter()
@@ -17,127 +17,18 @@ export default function Buscar() {
 
   return (
     <>
-      {estado === 'loading' && (
-        <section className='flex flex-col items-center justify-center p-4'>
-          <Image
-            src={spinner}
-            alt='Loading'
-            width={spinner.width / 2}
-            height={spinner.height / 2}
-          />
-          <h1 className='mt-8 mb-8 text-xl font-bold'>
-            Obteniendo datos, espere...
-          </h1>
-        </section>
-      )}
-      {estado === 'error' && (
-        <section className='flex flex-col items-center justify-center p-4'>
-          <h1 className='mt-8 mb-8 text-xl font-bold'>
-            Se ha producido un error, inténtelo de nuevo más tarde.
-          </h1>
-        </section>
-      )}
+      {estado === 'loading' && <Loading />}
+
+      {estado === 'error' && <Error />}
 
       {estado === 'ok' && (
-        <div className='flex flex-col items-center justify-center p-4'>
-          <div>
-            <h1 className='mb-8 text-3xl font-bold'>
-              Datos Básicos del Vehículo
-            </h1>
-            <h1>
-              {datos.brand} {datos.model}
-            </h1>
-            <h2>Combustible: {datos.fuel}</h2>
-            <h2>Homologación: {datos.emissions}</h2>
-            <h2>Bastidor: {datos.vin}</h2>
-          </div>
-        </div>
+        <ShowResults
+          data={datos}
+          transfers={transferencias}
+        />
       )}
 
-      {estado === 'ok' && (
-        <section className='flex flex-col items-center justify-center p-4'>
-          <div>
-            <h1 className='mb-8 text-3xl font-bold'>
-              Registro de Propietarios del Vehículo
-            </h1>
-            {transferencias.map((item, key) => (
-              <ul
-                className='my-8 rounded-lg bg-blue-50 p-4'
-                key={key}
-              >
-                <li>
-                  Fecha: {moment(item.writeTransferDate).format('YYYY/MM/DD')}
-                </li>
-                <li>Persona: {item.person}</li>
-                <li>Tipo Servicio: {item.typeServiceVehicle}</li>
-              </ul>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {estado === 'ok' && (
-        <section className='flex flex-col items-center justify-center p-4'>
-          <div>
-            <h1 className='mb-8 text-3xl font-bold'>
-              Registro de Movimientos del Vehículo
-            </h1>
-            <table className='m-auto rounded-lg bg-violet-100'>
-              <thead className='table-auto border-collapse'>
-                <tr>
-                  <th className='p-4 font-bold'>Fecha</th>
-                  <th className='p-4 font-bold'>Trámite</th>
-                  <th className='p-4 font-bold'>Localidad</th>
-                  <th className='p-4 font-bold'>Observaciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transferencias.map((item, key) =>
-                  key % 2 === 0 ? (
-                    <tr
-                      className='bg-violet-200'
-                      key={key}
-                    >
-                      <td className='p-4'>
-                        {moment(item.writeTransferDate).format('YYYY/MM/DD')}
-                      </td>
-                      <td className='p-4'>{item.typeTransfer}</td>
-                      <td className='p-4'>{item.city}</td>
-                      <td className='p-4 text-center'>n/d</td>
-                    </tr>
-                  ) : (
-                    <tr
-                      className='bg-violet-150'
-                      key={key}
-                    >
-                      <td className='p-4'>
-                        {moment(item.writeTransferDate).format('YYYY/MM/DD')}
-                      </td>
-                      <td className='p-4'>{item.typeTransfer}</td>
-                      <td className='p-4'>{item.city}</td>
-                      <td className='p-4 text-center'>n/d</td>
-                    </tr>
-                  )
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
-
-      {estado === 'no_results' && (
-        <section className='flex flex-col items-center justify-center p-4'>
-          <h1 className='mt-8 mb-8 text-2xl font-bold'>
-            No disponemos de datos del vehículo.
-          </h1>
-          <Image
-            src={meme}
-            alt='Homer Simpson'
-            width={meme.width / 2}
-            height={meme.height / 2}
-          />
-        </section>
-      )}
+      {estado === 'no_results' && <NoResults />}
     </>
   )
 }
