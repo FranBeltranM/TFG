@@ -3,7 +3,6 @@ import { createPool, deletePool } from '../services/db.js'
 import {
   getDataFromVIN,
   getDateFromLastInsert,
-  getPlateDatesFromVin,
   getTransferDetails,
 } from '../services/index.js'
 import { getVinFromPlate } from '../services/NorautoScrapper.js'
@@ -12,73 +11,18 @@ const router = express.Router()
 // const isInsertionActivated = true
 
 router.get('/', (req, res) => {
-  res.status(200).send('Hola')
+  res.status(200).send('<h1>Hola</h1>')
 })
 
 router.get('/buscar', async (req, res) => {
-  createPool()
+  const { plate, debug } = req.query
+  let { bastidor } = req.query
 
-  let bastidor = req.query?.bastidor
-  const { plate } = req.query
+  bastidor = plate ? await getVinFromPlate(plate) : bastidor
 
-  const debug = req.query?.debug
-
-  if (plate) {
-    bastidor = await getVinFromPlate(plate)
-  }
-
-  if (bastidor) {
-    let results = await getDataFromVIN(bastidor)
-    results = results.flat(Infinity)
-    results = results.slice(0, results.length - 1)
-
-    const obj = {
-      vehicle: {},
-      transfers: [],
-    }
-
-    const { firstPlateDate, plateDate } = await getPlateDatesFromVin(bastidor)
-
-    results.forEach((value, key) => {
-      if (debug) console.log({ value })
-
-      if (key === 0) {
-        obj.vehicle = {
-          brand: value.marca_itv,
-          model: value.modelo_itv,
-          plateType: value.clase_matricula,
-          vin: value.bastidor_itv,
-          fuel: value.tipo_combustible,
-          engineSize: value.cilindrada_itv,
-          fiscalHP: value.potencia_itv,
-          emissions: value.nivel_emisiones_euro_itv,
-          firstProvince: value.provincia_mat,
-          firstPlateDate,
-          plateDate,
-        }
-      }
-
-      obj.transfers.push({
-        plateType: value.cod_clase_mat,
-        startTransferDate: value.fecha_tramite,
-        writeTransferDate: value.fecha_proceso,
-        endTransferDate: value.fecha_tramitacion,
-        transferDetails: value.detalles_uuid,
-        province: value.cod_provincia_veh,
-        typeTransfer: value.tipo_tramite,
-        zipCode: value.codigo_postal,
-        person: value.persona_fisica_juridica,
-        typeServiceVehicle: value.tipo_servicio,
-        city: value.municipio,
-      })
-    })
-
-    res.send(obj)
-  } else {
-    res.send({ Error: 'No ha facilitado un bastidor.' })
-  }
-
-  await deletePool()
+  bastidor
+    ? res.send(await getDataFromVIN(bastidor, debug))
+    : res.send({ Error: 'No ha facilitado un bastidor.' })
 })
 
 // router.get('/insertarDatosOFF',
@@ -87,7 +31,7 @@ router.get('/buscar', async (req, res) => {
 router.get('/fechaUltimaInsercion', async (req, res) => {
   createPool()
   const lastInsertDate = await getDateFromLastInsert()
-  res.json({
+  res.send({
     date: lastInsertDate[0].fecha,
   })
   await deletePool()

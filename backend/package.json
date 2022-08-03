@@ -3,15 +3,17 @@
   "version": "1.0.0",
   "description": "Backend (NodeJS, MYSQL)",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "build-original": "babel index.js -d dist",
     "build-prod": "npx babel index.js -d dist && npx babel config.js -d dist && npx babel classes -d dist/classes && npx babel services -d dist/services && npx babel src -d dist/src && npx babel routes -d dist/routes",
     "start-original": "babel-node index.js",
-    "dev": "nodemon --exec babel-node index.js",
+    "dev": "NODE_ENV=development nodemon --exec babel-node index.js",
     "upload-prod": "scp -p -r ./dist/* root@82.223.23.24:/var/www/api-tfg.franbeltran.es",
     "build-deploy-prod": "npm run build-prod && npm run upload-prod",
-    "start-prod": "node dist/index.js",
-    "test": "jest --verbose"
+    "start-prod": "NODE_ENV=production node dist/index.js",
+    "test": "NODE_ENV=test jest --verbose --silent",
+    "test:watch": "npm run test -- --watch"
   },
   "author": "Fco. Jesús Beltrán Moreno",
   "license": "ISC",
@@ -28,17 +30,18 @@
     "eslint-plugin-node": "11.1.0",
     "eslint-plugin-promise": "5.2.0",
     "jest": "^28.1.3",
-    "nodemon": "2.0.15"
+    "nodemon": "2.0.15",
+    "supertest": "^6.2.4"
   },
   "dependencies": {
-    "@playwright/test": "^1.23.2",
+    "@playwright/test": "^1.24.2",
     "cluster": "^0.7.7",
     "dotenv": "10.0.0",
     "express": "4.17.1",
     "fs": "0.0.1-security",
     "moment": "2.29.1",
     "mysql": "2.18.1",
-    "playwright": "^1.23.2",
+    "playwright": "^1.24.2",
     "underscore": "1.13.2"
   }
 }

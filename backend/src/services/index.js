@@ -1,7 +1,8 @@
 import { promises as fs } from 'fs'
-import { query, createPool, deletePool } from './db'
+import { query, createPool, deletePool } from './db.js'
 import Registro from '../classes/vehiculo.js'
 import { chain } from 'underscore'
+import { formatDataVehicleFromVin } from '../utils/utils.js'
 
 // https://blog.logrocket.com/build-rest-api-node-express-mysql/
 
@@ -39,9 +40,13 @@ export const checkVinIsRegistered = async vin => {
   return data
 }
 
-export const getDataFromVIN = async vin => {
+export const getDataFromVinProcedure = async vin => {
   const sqlQuery = 'call getDatosBastidor(?)'
-  const data = query(sqlQuery, [vin])
+  let data = await query(sqlQuery, [vin])
+
+  // Formatting properly
+  data = data.flat(Infinity)
+  data = data.slice(0, data.length - 1)
 
   return data
 }
@@ -55,10 +60,33 @@ export const getPlateDatesFromVin = async vin => {
                   GROUP BY bastidor_itv`
   const data = await query(sqlQuery, vin)
 
-  return {
-    firstPlateDate: data[0].fecha_prim_matriculacion ?? null,
-    plateDate: data[0].fecha_matricula ?? null,
+  if (data.length > 0) {
+    return {
+      firstPlateDate: data[0].fecha_prim_matriculacion ?? null,
+      plateDate: data[0].fecha_matricula ?? null,
+    }
+  } else {
+    return {
+      firstPlateDate: null,
+      plateDate: null,
+    }
   }
+}
+
+export const getDataFromVIN = async (vin, debug = false) => {
+  createPool()
+
+  const results = await getDataFromVinProcedure(vin)
+  const { firstPlateDate, plateDate } = await getPlateDatesFromVin(vin)
+
+  results.plateDates = {
+    firstPlateDate,
+    plateDate,
+  }
+
+  await deletePool()
+
+  return formatDataVehicleFromVin(results, debug)
 }
 
 export const getNumberOfTransferFromVIN = async vin => {
@@ -163,9 +191,9 @@ export const getDateFromLastInsert = async () => {
                     FROM Transferencia
                     ORDER BY id DESC
                     LIMIT 1`
-  const data = query(sqlQuery)
+  const data = await query(sqlQuery)
 
-  return data
+  return data[0].fecha
 }
 
 export const insertar = async file => {
