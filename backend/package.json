@@ -10,20 +10,24 @@
     "dev": "nodemon --exec babel-node index.js",
     "upload-prod": "scp -p -r ./dist/* root@82.223.23.24:/var/www/api-tfg.franbeltran.es",
     "build-deploy-prod": "npm run build-prod && npm run upload-prod",
-    "start-prod": "node dist/index.js"
+    "start-prod": "node dist/index.js",
+    "test": "jest --verbose"
   },
   "author": "Fco. Jesús Beltrán Moreno",
   "license": "ISC",
   "devDependencies": {
     "@babel/cli": "7.16.0",
-    "@babel/core": "7.16.0",
+    "@babel/core": "^7.16.0",
     "@babel/node": "7.16.0",
-    "@babel/preset-env": "7.16.4",
+    "@babel/preset-env": "^7.16.4",
+    "babel-jest": "^28.1.3",
     "eslint": "7.32.0",
+    "eslint-config-prettier": "^8.5.0",
     "eslint-config-standard": "16.0.3",
     "eslint-plugin-import": "2.25.4",
     "eslint-plugin-node": "11.1.0",
     "eslint-plugin-promise": "5.2.0",
+    "jest": "^28.1.3",
     "nodemon": "2.0.15"
   },
   "dependencies": {

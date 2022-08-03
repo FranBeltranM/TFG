@@ -5,34 +5,67 @@ import { chain } from 'underscore'
 
 // https://blog.logrocket.com/build-rest-api-node-express-mysql/
 
-const codigosAceptados = ['20', '21', '22', '23', '24', '25', '40', '50', '51', '52', '53', '54', '60', '70', '90', '91', '92']
+const codigosAceptados = [
+  '20',
+  '21',
+  '22',
+  '23',
+  '24',
+  '25',
+  '40',
+  '50',
+  '51',
+  '52',
+  '53',
+  '54',
+  '60',
+  '70',
+  '90',
+  '91',
+  '92',
+]
 
-export const loadDataFromFile = async (file) => {
+export const loadDataFromFile = async file => {
   const data = await fs.readFile(file, 'latin1')
   return data.split('\n')
 }
 
-export const checkVinIsRegistered = async (vin) => {
+export const checkVinIsRegistered = async vin => {
   const sqlQuery = `SELECT *
                     FROM dev.registro
-                    WHERE bastidor_itv = '${vin}'`
-  const data = query(sqlQuery)
+                    WHERE bastidor_itv = ?`
+  const data = query(sqlQuery, [vin])
 
   return data
 }
 
-export const getDataFromVIN = async (vin) => {
+export const getDataFromVIN = async vin => {
   const sqlQuery = 'call getDatosBastidor(?)'
   const data = query(sqlQuery, [vin])
 
   return data
 }
 
-export const getNumberOfTransferFromVIN = async (vin) => {
+export const getPlateDatesFromVin = async vin => {
+  const sqlQuery = `SELECT
+                      MIN(V.fecha_prim_matriculacion) as 'fecha_prim_matriculacion',
+                      MAX(V.fecha_matricula) as 'fecha_matricula'
+                  from Vehiculo V
+                  where bastidor_itv = ?
+                  GROUP BY bastidor_itv`
+  const data = await query(sqlQuery, vin)
+
+  return {
+    firstPlateDate: data[0].fecha_prim_matriculacion ?? null,
+    plateDate: data[0].fecha_matricula ?? null,
+  }
+}
+
+export const getNumberOfTransferFromVIN = async vin => {
   const sqlQuery = `SELECT COUNT(*) as Total
                     FROM registro
-                    WHERE bastidor_itv = '${vin}'`
-  const data = query(sqlQuery)
+                    WHERE bastidor_itv = ?`
+  const data = query(sqlQuery, [vin])
 
   return data
 }
@@ -55,7 +88,7 @@ export const getNumberOfTransferFromVIN = async (vin) => {
 //   return data
 // }
 
-export const getModelsFromBrand = async (brand) => {
+export const getModelsFromBrand = async brand => {
   const sqlQuery = `SELECT id, marca_itv, modelo_itv
                     FROM dev5.MarcaModelo
                     WHERE marca_itv = '${brand}'`
@@ -71,14 +104,15 @@ export const getModelsFromBrand = async (brand) => {
 //   return data
 // }
 
-export const insertNewTransfer = async (transferData) => {
-  const sqlQuery = 'call dev5.insertarTransferencia(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+export const insertNewTransfer = async transferData => {
+  const sqlQuery =
+    'call dev5.insertarTransferencia(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
   const data = query(sqlQuery, transferData)
 
   return data
 }
 
-export const getTransferDetails = async (transferDetailUUID) => {
+export const getTransferDetails = async transferDetailUUID => {
   const sqlQuery = `
     SELECT
       BIN_TO_UUID(id, 1) as id,
@@ -103,21 +137,21 @@ export const getTransferDetails = async (transferDetailUUID) => {
   return data
 }
 
-export const insertNewVehicle = async (dataVehicleArray) => {
+export const insertNewVehicle = async dataVehicleArray => {
   const sqlQuery = 'call dev5.insertarVehiculo(?, ?, ?, ?, ?, ?, ?)'
   const data = query(sqlQuery, dataVehicleArray)
 
   return data
 }
 
-export const insertNewBrandModel = async (dataBrandModel) => {
+export const insertNewBrandModel = async dataBrandModel => {
   const sqlQuery = 'call dev5.insertarMarcaModelo(?, ?)'
   const data = query(sqlQuery, dataBrandModel)
 
   return data
 }
 
-export const insertNewTechnicalData = async (dataTechnical) => {
+export const insertNewTechnicalData = async dataTechnical => {
   const sqlQuery = 'call dev5.insertarDatosTecnicos(?, ?, ?, ?, ?, ?, ?)'
   const data = query(sqlQuery, dataTechnical)
 
@@ -134,11 +168,14 @@ export const getDateFromLastInsert = async () => {
   return data
 }
 
-export const insertar = async (file) => {
+export const insertar = async file => {
   console.log(`Fichero: ${file}`)
   createPool()
-  let total = 0; let registryInserted = 0
-  const data = await loadDataFromFile(`/Users/franciscojesusbeltranmoreno/dev/DGT-Files/export_mensual_trf_${file}.txt`)
+  let total = 0
+  let registryInserted = 0
+  const data = await loadDataFromFile(
+    `/Users/franciscojesusbeltranmoreno/dev/DGT-Files/export_mensual_trf_${file}.txt`
+  )
   const output = []
 
   let arrayPromises = []
@@ -148,7 +185,9 @@ export const insertar = async (file) => {
   data.forEach(value => {
     if (value.length > 50) {
       const registro = new Registro(value)
-      if (codigosAceptados.includes(registro.getCodigoTipo)) { output.push(registro) }
+      if (codigosAceptados.includes(registro.getCodigoTipo)) {
+        output.push(registro)
+      }
     } else {
       console.log(`Fichero ${file} leído completamente.`)
       console.log([{ 'Fichero completo': 'Línea vacía.' }])
@@ -162,12 +201,11 @@ export const insertar = async (file) => {
 
   console.log({ filter: totalIterations, raw: data.length })
 
-  const uniqueBrandModel = Object
-    .values(
-      chain(output)
-        .indexBy(function (value) { return [value.marca_itv, value.modelo_itv] })
-        ._wrapped
-    )
+  const uniqueBrandModel = Object.values(
+    chain(output).indexBy(function (value) {
+      return [value.marca_itv, value.modelo_itv]
+    })._wrapped
+  )
 
   console.log('Insertando Marcas y Modelos.')
 
@@ -176,7 +214,9 @@ export const insertar = async (file) => {
 
     chunk.forEach(value => {
       // arrayPromises.push(insertNewBrandModel([value.marca_itv, value.modelo_itv]))
-      arrayPromises.push(insertNewBrandModel([value.marca_itv, value.modelo_itv]))
+      arrayPromises.push(
+        insertNewBrandModel([value.marca_itv, value.modelo_itv])
+      )
     })
 
     // Resolución de promesas
@@ -196,17 +236,18 @@ export const insertar = async (file) => {
     arrayResolves = []
   }
 
-  console.log(`Total: ${total}/${uniqueBrandModel.length} | Registros Insertados: ${registryInserted}`)
+  console.log(
+    `Total: ${total}/${uniqueBrandModel.length} | Registros Insertados: ${registryInserted}`
+  )
 
   total = 0
   registryInserted = 0
 
-  const uniqueTechnicalData = Object
-    .values(
-      chain(output)
-        .indexBy(function (value) { return value.getMascara })
-        ._wrapped
-    )
+  const uniqueTechnicalData = Object.values(
+    chain(output).indexBy(function (value) {
+      return value.getMascara
+    })._wrapped
+  )
 
   console.log('Insertando Datos Técnicos')
 
@@ -234,16 +275,22 @@ export const insertar = async (file) => {
     arrayResolves = []
   }
 
-  console.log(`Total: ${total}/${uniqueTechnicalData.length} | Registros Insertados: ${registryInserted}`)
+  console.log(
+    `Total: ${total}/${uniqueTechnicalData.length} | Registros Insertados: ${registryInserted}`
+  )
   total = 0
   registryInserted = 0
 
-  const uniqueVehicleData = Object
-    .values(
-      chain(output)
-        .indexBy(function (value) { return [value.bastidor_itv, value.cod_clase_mat, value.fecha_prim_matriculacion, value.fecha_matricula] })
-        ._wrapped
-    )
+  const uniqueVehicleData = Object.values(
+    chain(output).indexBy(function (value) {
+      return [
+        value.bastidor_itv,
+        value.cod_clase_mat,
+        value.fecha_prim_matriculacion,
+        value.fecha_matricula,
+      ]
+    })._wrapped
+  )
 
   console.log('Insertando Vehículos')
 
@@ -271,7 +318,9 @@ export const insertar = async (file) => {
     arrayResolves = []
   }
 
-  console.log(`Total: ${total}/${uniqueVehicleData.length} | Registros Insertados: ${registryInserted}`)
+  console.log(
+    `Total: ${total}/${uniqueVehicleData.length} | Registros Insertados: ${registryInserted}`
+  )
   console.log('Insertando Transferencias')
 
   total = 0
@@ -301,6 +350,8 @@ export const insertar = async (file) => {
     arrayResolves = []
   }
 
-  console.log(`Total: ${total}/${output.length} | Registros Insertados: ${registryInserted}`)
+  console.log(
+    `Total: ${total}/${output.length} | Registros Insertados: ${registryInserted}`
+  )
   deletePool()
 }

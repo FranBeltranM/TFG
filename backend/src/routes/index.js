@@ -3,6 +3,7 @@ import { createPool, deletePool } from '../services/db.js'
 import {
   getDataFromVIN,
   getDateFromLastInsert,
+  getPlateDatesFromVin,
   getTransferDetails,
 } from '../services/index.js'
 import { getVinFromPlate } from '../services/NorautoScrapper.js'
@@ -29,13 +30,16 @@ router.get('/buscar', async (req, res) => {
   if (bastidor) {
     let results = await getDataFromVIN(bastidor)
     results = results.flat(Infinity)
+    results = results.slice(0, results.length - 1)
 
     const obj = {
       vehicle: {},
       transfers: [],
     }
 
-    results.slice(0, results.length - 1).forEach((value, key) => {
+    const { firstPlateDate, plateDate } = await getPlateDatesFromVin(bastidor)
+
+    results.forEach((value, key) => {
       if (debug) console.log({ value })
 
       if (key === 0) {
@@ -49,13 +53,13 @@ router.get('/buscar', async (req, res) => {
           fiscalHP: value.potencia_itv,
           emissions: value.nivel_emisiones_euro_itv,
           firstProvince: value.provincia_mat,
+          firstPlateDate,
+          plateDate,
         }
       }
 
       obj.transfers.push({
         plateType: value.cod_clase_mat,
-        firstPlateDate: value.fecha_prim_matriculacion,
-        plateDate: value.fecha_matricula,
         startTransferDate: value.fecha_tramite,
         writeTransferDate: value.fecha_proceso,
         endTransferDate: value.fecha_tramitacion,

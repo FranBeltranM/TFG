@@ -2,8 +2,8 @@ import express from 'express'
 import cluster from 'cluster'
 import os from 'os'
 import dotenv from 'dotenv'
-import { router } from './routes/index.js'
-import { insertar } from './services/index.js'
+import { router } from './src/routes/index.js'
+import { insertar } from './src/services/index.js'
 
 const numCPUs = os.cpus().length
 
@@ -23,7 +23,7 @@ if (cluster.isPrimary) {
 } else {
   app
     .listen(PORT || 3000, () =>
-      console.log(`[SERVER-LOG] Server listen on PORT => ${PORT || 3000}`),
+      console.log(`[SERVER-LOG] Server listen on PORT => ${PORT || 3000}`)
     )
     .setTimeout(0)
 
