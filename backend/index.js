@@ -11,39 +11,38 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT
 const isInsertionActivated = true
+let server = null
 
 app.use(express.json())
 
-// if (cluster.isPrimary && process.env.NODE_ENV !== 'test') {
-//   for (let i = 0; i < numCPUs; i++) {
-//     cluster.fork()
-//   }
-
-//   cluster.on('exit', (worker, code, signal) => {
-//     console.log(`worker ${worker.process.pid} died`)
-//   })
-// } else {
-// if (process.env.NODE_ENV === 'test') {
-const server = app.listen(PORT || 3000, () =>
-  console.log(`[SERVER-LOG] Server listen on PORT => ${PORT || 3000}`)
-)
-// }
-
-app.get('/', router)
-app.get('/buscar', router)
-app.get('/buscarDetalleTransferencia', router)
-
-app.get('/insertarDatosOFF', async (req, res) => {
-  if (isInsertionActivated) {
-    const { year, month } = req.query
-    await insertar(`${year}${month}`)
-  } else {
-    res.send('<h1>Este servicio está desactivado.</h1>')
+if (cluster.isPrimary) {
+  for (let i = 0; i < numCPUs; i++) {
+    cluster.fork()
   }
-})
 
-app.get('/fechaUltimaInsercion', router)
-app.get('/getVinFromPlate', router)
-// }
+  cluster.on('exit', (worker, code, signal) => {
+    console.log(`worker ${worker.process.pid} died`)
+  })
+} else {
+  server = app.listen(PORT || 3000, () =>
+    console.log(`[SERVER-LOG] Server listen on PORT => ${PORT || 3000}`)
+  )
+
+  app.get('/', router)
+  app.get('/buscar', router)
+  app.get('/buscarDetalleTransferencia', router)
+
+  app.get('/insertarDatosOFF', async (req, res) => {
+    if (isInsertionActivated) {
+      const { year, month } = req.query
+      await insertar(`${year}${month}`)
+    } else {
+      res.send('<h1>Este servicio está desactivado.</h1>')
+    }
+  })
+
+  app.get('/fechaUltimaInsercion', router)
+  app.get('/getVinFromPlate', router)
+}
 
 export { app, server }
