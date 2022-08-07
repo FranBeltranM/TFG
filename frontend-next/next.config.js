@@ -6,8 +6,8 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'https://api-tfg.franbeltran.es/:path*',
-        // destination: 'http://localhost:3000/:path*',
+        // destination: 'https://api-tfg.franbeltran.es/:path*',
+        destination: 'http://localhost:3000/:path*',
       },
     ]
   },
