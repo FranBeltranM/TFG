@@ -5,8 +5,6 @@ const getLastInserctionDate = async () => {
   const res = await fetch('api/fechaUltimaInsercion')
   const data = await res.json()
 
-  console.log(data)
-
   return data.date
 }
 
