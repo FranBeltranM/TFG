@@ -32,8 +32,9 @@ router.get('/fechaUltimaInsercion', async (req, res) => {
   createPool()
   const lastInsertDate = await getDateFromLastInsert()
   res.send({
-    date: lastInsertDate[0].fecha,
+    date: lastInsertDate,
   })
+
   await deletePool()
 })
 
