@@ -36,7 +36,7 @@ export const endPool = async (): Promise<void | false> => await _endPool()
  * @param values {Array[string]} - The values to be inserted in the query
  * @returns
  */
-export const query = async (sql: string, values: Array<String>) => {
+export const query = async (sql: string, values: Array<String> = []) => {
   if (pool !== null) {
     const [results] = await pool.query(sql, values)
     return results
