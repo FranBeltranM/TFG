@@ -1,5 +1,6 @@
 import express from 'express'
 import dotenv from 'dotenv'
+import resource from './routes/resource'
 import transfers from './routes/transfers'
 import vehicle from './routes/vehicle'
 import index from './routes/index'
@@ -21,3 +22,4 @@ export const server = app.listen(PORT, async () => {
 app.use('/api', index)
 app.use('/api/vehicle', vehicle)
 app.use('/api/transfers', transfers)
+app.use('/api/resources', resource)

@@ -23,3 +23,8 @@ export interface Transfer {
   typeServiceVehicle: string
   city: string
 }
+
+export interface Resource {
+  key: string | number
+  value: string | number
+}

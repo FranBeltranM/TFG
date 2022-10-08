@@ -1,4 +1,5 @@
 import { Request } from 'express'
+import { Resource } from '../types'
 import logger from 'node-color-log'
 
 const logDict: { [key: string]: any } = {
@@ -52,4 +53,24 @@ export const getParamsValues = (req: Request, params: Array<any>) => {
   }, {})
 
   return paramValues
+}
+
+/**
+ * This function extract the key and value from an object
+ * @param object DB Result
+ * @returns Object with key and value
+ */
+export const getKeyValueFromObject = (object: any): Resource => {
+  return Object.entries(object).reduce(
+    (prevValue: any, currentValue) => {
+      if (prevValue.key === '' && prevValue.value === '') {
+        prevValue.key = currentValue[1]
+        return prevValue
+      } else {
+        prevValue.value = currentValue[1]
+        return prevValue
+      }
+    },
+    { key: '', value: '' }
+  )
 }
