@@ -12,14 +12,20 @@ const app = express()
 const PORT = process.env.PORT || 3000
 app.use(express.json())
 
-export const server = app.listen(PORT, async () => {
-  log('INFO', `Server running on port ${PORT}`)
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, async () => {
+    log('INFO', `Server running on port ${PORT}`)
 
-  const pool = await initializeDB()
-  pool !== null && log('INFO', `Connected to database succesfully`)
-})
+    const pool = await initializeDB()
+    pool !== null && log('INFO', `Connected to database succesfully`)
+  })
+}
+
+process.env.NODE_ENV === 'test' && (await initializeDB())
 
 app.use('/api', index)
 app.use('/api/vehicle', vehicle)
 app.use('/api/transfers', transfers)
 app.use('/api/resources', resource)
+
+export { app }
