@@ -1,6 +1,6 @@
 import { expect, describe, it, beforeAll } from 'vitest'
-import { initializeDB } from '../database/db'
-import * as resourceServices from './resourceServices'
+import { initializeDB } from '../../src/database/db'
+import * as resourceServices from '../../src/services/resourceServices'
 
 beforeAll(async () => {
   initializeDB()
