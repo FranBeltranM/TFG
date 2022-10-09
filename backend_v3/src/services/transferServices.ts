@@ -1,4 +1,4 @@
-import * as transfer from '../database/Transfer'
+import * as transfer from '../database/transfer'
 import { Transfer } from '../types'
 import { log } from '../utils/functions'
 
