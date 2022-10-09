@@ -1,4 +1,4 @@
-import * as resource from '../controllers/resource.controller'
+import * as resource from '../database/Resource'
 import { Resource } from '../types'
 import { log } from '../utils/functions'
 

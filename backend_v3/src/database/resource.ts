@@ -1,7 +1,7 @@
 import { Resource } from '../types'
+import { query } from './db'
 import { resourceTypes } from '../utils/config'
 import { getKeyValueFromObject, log } from '../utils/functions'
-import { query } from './db.controller'
 
 const queryDictGet: { [key: string]: any } = {
   findByResource: (resourceType: string) => {

@@ -1,6 +1,6 @@
 import { Vehicle } from '../types'
 import { log } from '../utils/functions'
-import { query } from './db.controller'
+import { query } from './db'
 
 const queryDictGet: { [key: string]: any } = {
   findByVin: () => {
@@ -28,7 +28,7 @@ const queryDictGet: { [key: string]: any } = {
   },
 }
 
-export const findByVin = async (vin: string, debug = false): Promise<Vehicle | []> => {
+export const findByVin = async (vin: string, debug = false): Promise<Vehicle | null> => {
   const queryString = queryDictGet[`${findByVin.name}`]()
   debug && log('DEBUG', { queryString })
 
@@ -50,5 +50,5 @@ export const findByVin = async (vin: string, debug = false): Promise<Vehicle | [
     return vehicle
   }
 
-  return []
+  return null
 }

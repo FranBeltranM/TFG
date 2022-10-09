@@ -1,9 +1,9 @@
 import { Transfer, TransferResult } from '../types'
 import { log } from '../utils/functions'
-import { query } from './db.controller'
+import { query } from './db'
 
 const queryDictGet: { [key: string]: any } = {
-  findByIdVehicle: () => {
+  findByVehicleId: () => {
     return `select BIN_TO_UUID(t.id, 1) as id,
                     t.fecha_tramite,
                     t.fecha_tramitacion,
@@ -47,9 +47,9 @@ const createTransferObject = (transferResult: TransferResult): Transfer => {
   }
 }
 
-export const findByIdVehicle = async (idVehicle: string, debug = false): Promise<Transfer[]> => {
+export const findByVehicleId = async (idVehicle: string, debug = false): Promise<Transfer[]> => {
   try {
-    const queryString = queryDictGet[`${findByIdVehicle.name}`]()
+    const queryString = queryDictGet[`${findByVehicleId.name}`]()
     debug && log('DEBUG', { queryString })
     const transfersResults = (await query(queryString, [idVehicle])) as Array<any>
 
@@ -64,6 +64,6 @@ export const findByIdVehicle = async (idVehicle: string, debug = false): Promise
     return []
   } catch (err: any) {
     debug && log('ERROR', err.message)
-    throw new Error(`transfer.controller.${findByIdVehicle.name} -> ${err.message}`)
+    throw new Error(`transfer.controller.${findByVehicleId.name} -> ${err.message}`)
   }
 }
