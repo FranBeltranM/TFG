@@ -51,7 +51,7 @@ router.get(
 )
 
 router.get('/:id/details', (_, res) => {
-  res.send('This is a transfer details')
+  res.send('Work in progress')
 })
 
 export default router

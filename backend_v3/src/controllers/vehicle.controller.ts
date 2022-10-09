@@ -2,7 +2,7 @@ import { Vehicle } from '../types'
 import { log } from '../utils/functions'
 import { query } from './db.controller'
 
-export const queryDictGet: { [key: string]: any } = {
+const queryDictGet: { [key: string]: any } = {
   findByVin: () => {
     return `select BIN_TO_UUID(V.id, 1) as id,
                   bastidor_itv,
@@ -28,13 +28,13 @@ export const queryDictGet: { [key: string]: any } = {
   },
 }
 
-export const findByVin = async (vin: string, debug = false): Promise<Vehicle | null> => {
+export const findByVin = async (vin: string, debug = false): Promise<Vehicle | []> => {
   const queryString = queryDictGet[`${findByVin.name}`]()
   debug && log('DEBUG', { queryString })
 
   const data = (await query(queryString, [vin, vin])) as any
 
-  if (data) {
+  if (data.length > 0) {
     const vehicle: Vehicle = {
       id: data[0].id,
       vin: data[0].bastidor_itv,
@@ -50,5 +50,5 @@ export const findByVin = async (vin: string, debug = false): Promise<Vehicle | n
     return vehicle
   }
 
-  return null
+  return []
 }

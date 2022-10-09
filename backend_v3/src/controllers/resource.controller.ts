@@ -17,9 +17,13 @@ const queryDictGet: { [key: string]: any } = {
  * @returns the resource found
  */
 export const findByResource = async (resourceType: string, debug = false): Promise<Resource[] | null> => {
-  const queryString = queryDictGet[`${findByResource.name}`](resourceType)
-  debug && log('DEBUG', { queryString })
-
-  const results = (await query(queryString)) as Array<any>
-  return results.map((result) => getKeyValueFromObject(result))
+  try {
+    const queryString = queryDictGet[`${findByResource.name}`](resourceType)
+    debug && log('DEBUG', { queryString })
+    const results = (await query(queryString)) as Array<any>
+    return results.map((result) => getKeyValueFromObject(result))
+  } catch (err: any) {
+    debug && log('ERROR', err.message)
+    throw new Error(`resource.controller.${findByResource.name} -> ${err.message}`)
+  }
 }

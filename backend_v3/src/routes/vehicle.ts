@@ -22,7 +22,9 @@ router.get(
     if (req.query.plate) {
       const plate = String(req.query.plate).toUpperCase()
       const plateRegex = new RegExp(/^[0-9]{4}[A-Z]{3}$/)
-      if (!plateRegex.test(plate))
+      const notVowelsRegex = new RegExp(/\b([^AEIOU\s]+)\b/)
+
+      if (!plateRegex.test(plate) || !notVowelsRegex.test(plate))
         return res.status(400).json({
           status: 'KO',
           info: 'Invalid plate format 🙄',
@@ -38,11 +40,23 @@ router.get(
   },
   async (_req, res, _next) => {
     try {
-      const data = await vehicle.findByVin(res.locals.params.vin, res.locals.params.debug)
-      res.status(200).json({
-        status: 'OK',
-        data: data,
-      })
+      const { vin, plate, debug } = res.locals.params
+
+      if (vin) {
+        const data = await vehicle.findByVin(vin, debug)
+
+        res.status(200).json({
+          status: 'OK',
+          data: data,
+        })
+      }
+
+      if (plate) {
+        res.status(500).json({
+          status: 'KO',
+          info: 'Internal server error 😱, work in progress',
+        })
+      }
     } catch (err: any) {
       log('ERROR', err.toString())
       res.status(500).json({

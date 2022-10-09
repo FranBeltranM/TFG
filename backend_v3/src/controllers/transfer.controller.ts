@@ -1,8 +1,8 @@
-import { Transfer } from '../types'
+import { Transfer, TransferResult } from '../types'
 import { log } from '../utils/functions'
 import { query } from './db.controller'
 
-export const queryDictGet: { [key: string]: any } = {
+const queryDictGet: { [key: string]: any } = {
   findByIdVehicle: () => {
     return `select BIN_TO_UUID(t.id, 1) as id,
                     t.fecha_tramite,
@@ -34,31 +34,36 @@ export const queryDictGet: { [key: string]: any } = {
   },
 }
 
-export const findByIdVehicle = async (idVehicle: string, debug = false): Promise<Transfer[] | null> => {
-  const queryString = queryDictGet[`${findByIdVehicle.name}`]()
-
-  debug && log('DEBUG', { queryString })
-
-  const transfersResults = (await query(queryString, [idVehicle])) as Array<any>
-
-  if (transfersResults) {
-    const transfers: Transfer[] = transfersResults.map((transferResult) => {
-      const transfer: Transfer = {
-        startTransferDate: transferResult.fecha_tramite,
-        writeTransferDate: transferResult.fecha_proceso,
-        endTransferDate: transferResult.fecha_tramitacion,
-        typeTransfer: transferResult.tipo_tramite,
-        zipCode: transferResult.codigo_postal,
-        person: transferResult.persona_fisica_juridica,
-        typeServiceVehicle: transferResult.tipo_servicio,
-        city: transferResult.municipio,
-      }
-
-      return transfer
-    })
-
-    return transfers
+const createTransferObject = (transferResult: TransferResult): Transfer => {
+  return {
+    startTransferDate: transferResult.fecha_tramite,
+    writeTransferDate: transferResult.fecha_proceso,
+    endTransferDate: transferResult.fecha_tramitacion,
+    typeTransfer: transferResult.tipo_tramite,
+    zipCode: transferResult.codigo_postal,
+    person: transferResult.persona_fisica_juridica,
+    typeServiceVehicle: transferResult.tipo_servicio,
+    city: transferResult.municipio,
   }
+}
 
-  return null
+export const findByIdVehicle = async (idVehicle: string, debug = false): Promise<Transfer[]> => {
+  try {
+    const queryString = queryDictGet[`${findByIdVehicle.name}`]()
+    debug && log('DEBUG', { queryString })
+    const transfersResults = (await query(queryString, [idVehicle])) as Array<any>
+
+    if (transfersResults.length > 0) {
+      const transfers: Transfer[] = transfersResults.map((transferResult: TransferResult) => {
+        return createTransferObject(transferResult)
+      })
+
+      return transfers
+    }
+
+    return []
+  } catch (err: any) {
+    debug && log('ERROR', err.message)
+    throw new Error(`transfer.controller.${findByIdVehicle.name} -> ${err.message}`)
+  }
 }
