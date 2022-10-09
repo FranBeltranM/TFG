@@ -1,16 +1,22 @@
 import express from 'express'
 import dotenv from 'dotenv'
-import resource from './routes/resource'
-import transfer from './routes/transfer'
-import vehicle from './routes/vehicle'
-import index from './routes/index'
+import apicache from 'apicache'
+
+import v1ResourceRouter from './v1/routes/resource'
+import v1TransferRouter from './v1/routes/transfer'
+import v1VehicleRouter from './v1/routes/vehicle'
+import v1IndexRouter from './v1/routes/index'
+
 import { initializeDB } from './database/db'
 import { log } from './utils/functions'
 
 dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 3000
+const cache = apicache.middleware
+
 app.use(express.json())
+app.use(cache('1 minutes'))
 
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, async () => {
@@ -21,11 +27,18 @@ if (process.env.NODE_ENV !== 'test') {
   })
 }
 
-process.env.NODE_ENV === 'test' && (await initializeDB())
+if (process.env.NODE_ENV === 'test') {
+  const pool = async () => {
+    const pool = await initializeDB()
+    return pool
+  }
 
-app.use('/api', index)
-app.use('/api/vehicles', vehicle)
-app.use('/api/transfers', transfer)
-app.use('/api/resources', resource)
+  pool()
+}
+
+app.use('/api/v1', v1IndexRouter)
+app.use('/api/v1/vehicles', v1VehicleRouter)
+app.use('/api/v1/transfers', v1TransferRouter)
+app.use('/api/v1/resources', v1ResourceRouter)
 
 export { app }
