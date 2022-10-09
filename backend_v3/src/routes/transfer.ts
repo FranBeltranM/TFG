@@ -1,5 +1,5 @@
 import express from 'express'
-import * as transferController from '../controllers/transfer.controller'
+import * as transferController from '../controllers/transferController'
 
 const router = express.Router()
 
