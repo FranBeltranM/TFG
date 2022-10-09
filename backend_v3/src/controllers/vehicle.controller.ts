@@ -1,54 +1,65 @@
-import { Vehicle } from '../types'
-import { log } from '../utils/functions'
-import { query } from './db.controller'
+import { Request, Response, NextFunction } from 'express'
+import { paramsEntryPoints } from '../utils/config'
+import { checkIsValidParams, log } from '../utils/functions'
+import * as vehicle from '../services/vehicleServices'
 
-const queryDictGet: { [key: string]: any } = {
-  findByVin: () => {
-    return `select BIN_TO_UUID(V.id, 1) as id,
-                  bastidor_itv,
-                  marca_itv,
-                  modelo_itv,
-                  (SELECT MIN(fecha_prim_matriculacion) FROM Vehiculo WHERE bastidor_itv = ?) AS fecha_prim_matriculacion,
-                  fecha_matricula,
-                  cod_mat.descripcion as clase_matricula,
-                  cod_tipo.descripcion as tipo_vehiculo,
-                  cod_prop.descripcion as fuel,
-                  DT.cilindrada_itv,
-                  DT.nivel_emisiones_euro_itv,
-                  DT.potencia_itv
-    from Vehiculo V
-    inner join MarcaModelo MM on V.id_marca_modelo = MM.id
-    inner join DatosTecnicos DT on V.id_datos_tecnicos = DT.id
-    left join TablasEstaticas.COD_TIPO cod_tipo on cod_tipo.cod_tipo = DT.cod_tipo
-    left join TablasEstaticas.COD_PROPULSION cod_prop on cod_prop.cod_propulsion = DT.cod_propulsion_itv
-    left join TablasEstaticas.COD_CLASE_MAT cod_mat on cod_mat.codigo_clase_mat = V.cod_clase_mat
-    where V.bastidor_itv = ?
-    order by fecha_matricula desc
-    limit 1`
-  },
-}
+export const checkValidInput = async (req: Request, res: Response, next: NextFunction) => {
+  const isDebugMode = req.get('DEBUG_FLAG') ?? false
+  const { mandatory: mandatoryParams } = paramsEntryPoints['/search']()
 
-export const findByVin = async (vin: string, debug = false): Promise<Vehicle | []> => {
-  const queryString = queryDictGet[`${findByVin.name}`]()
-  debug && log('DEBUG', { queryString })
+  isDebugMode && log('DEBUG', { params: req.query })
 
-  const data = (await query(queryString, [vin, vin])) as any
+  if (!checkIsValidParams(req.query, mandatoryParams))
+    return res.status(400).json({
+      status: 'KO',
+      info: 'Missing fields 🙄',
+    })
 
-  if (data.length > 0) {
-    const vehicle: Vehicle = {
-      id: data[0].id,
-      vin: data[0].bastidor_itv,
-      brand: data[0].marca_itv,
-      model: data[0].modelo_itv,
-      plateType: data[0].clase_matricula,
-      fuel: data[0].fuel,
-      engineSize: data[0].cilindrada_itv,
-      fiscalHP: data[0].potencia_itv,
-      emissions: data[0].nivel_emisiones_euro_itv,
-    }
+  if (req.query.plate) {
+    const plate = String(req.query.plate).toUpperCase()
+    const plateRegex = new RegExp(/^[0-9]{4}[A-Z]{3}$/)
+    const notVowelsRegex = new RegExp(/\b([^AEIOU\s]+)\b/)
 
-    return vehicle
+    if (!plateRegex.test(plate) || !notVowelsRegex.test(plate))
+      return res.status(400).json({
+        status: 'KO',
+        info: 'Invalid plate format 🙄',
+      })
   }
 
-  return []
+  res.locals.params = {
+    debug: isDebugMode,
+    ...req.query,
+  }
+
+  return next()
+}
+
+export const getVehicle = async (_req: Request, res: Response, _next: NextFunction) => {
+  try {
+    const { vin, plate, debug } = res.locals.params
+
+    if (vin) {
+      const data = await vehicle.getVehicleByVin(vin, debug)
+
+      res.status(200).json({
+        status: 'OK',
+        data: data,
+      })
+    }
+
+    if (plate) {
+      res.status(500).json({
+        status: 'KO',
+        info: 'Internal server error 😱, work in progress',
+      })
+    }
+  } catch (err: any) {
+    log('ERROR', err.toString())
+    res.status(500).json({
+      status: 'KO',
+      info: 'Internal server error 😱',
+      reason: err.toString(),
+    })
+  }
 }

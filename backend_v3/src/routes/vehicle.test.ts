@@ -17,7 +17,7 @@ describe('Check vehicle routes', () => {
 
     expect(response.body).toStrictEqual({
       status: 'OK',
-      data: [],
+      data: null,
     })
   })
 
