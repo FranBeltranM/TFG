@@ -7,9 +7,9 @@
     "tsc": "tsc",
     "dev": "ts-node-dev src/index.ts",
     "start": "node build/index.js",
-    "test": "NODE_ENV=test vitest",
-    "coverage": "NODE_ENV=test vitest --coverage",
-    "test:ui": "NODE_ENV=test vitest --ui"
+    "test": "NODE_ENV=test vitest --dir tests",
+    "coverage": "NODE_ENV=test vitest --coverage --dir tests",
+    "test:ui": "NODE_ENV=test vitest --ui --dir tests"
   },
   "keywords": [],
   "author": "",

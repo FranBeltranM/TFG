@@ -1,4 +1,4 @@
-import * as vehicle from '../database/vehicle'
+import * as vehicle from '../database/Vehicle'
 import { Vehicle } from '../types'
 import { log } from '../utils/functions'
 
