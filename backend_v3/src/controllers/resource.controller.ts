@@ -1,29 +1,44 @@
-import { Resource } from '../types'
-import { resourceTypes } from '../utils/config'
-import { getKeyValueFromObject, log } from '../utils/functions'
-import { query } from './db.controller'
+import { Request, Response, NextFunction } from 'express'
+import { availableResources, paramsEntryPoints } from '../utils/config'
+import { checkIsValidParams, log } from '../utils/functions'
+import * as resource from '../services/resourceServices'
 
-const queryDictGet: { [key: string]: any } = {
-  findByResource: (resourceType: string) => {
-    const tableName = resourceTypes[resourceType]()
-    return `SELECT * FROM TablasEstaticas.${tableName}`
-  },
+export const checkValidInput = async (req: Request, res: Response, next: NextFunction) => {
+  const isDebugMode = req.get('DEBUG_FLAG') ?? false
+  const { mandatory: mandatoryParams } = paramsEntryPoints['/resources/type']()
+
+  isDebugMode && log('DEBUG', { params: req.params })
+
+  if (!checkIsValidParams(req.params, mandatoryParams)) {
+    return res.status(400).json({
+      status: 'KO',
+      info: 'Missing fields 🙄',
+    })
+  }
+
+  const { type } = req.params
+
+  if (!availableResources.includes(type)) {
+    return res.status(400).json({
+      status: 'KO',
+      info: 'Invalid resource type 🤔',
+    })
+  }
+
+  res.locals.params = {
+    debug: isDebugMode,
+    ...req.params,
+  }
+
+  return next()
 }
 
-/**
- * This function returns the resource from the database
- * @param resourceType type of resource to be searched
- * @param debug true if you want to see the query
- * @returns the resource found
- */
-export const findByResource = async (resourceType: string, debug = false): Promise<Resource[] | null> => {
-  try {
-    const queryString = queryDictGet[`${findByResource.name}`](resourceType)
-    debug && log('DEBUG', { queryString })
-    const results = (await query(queryString)) as Array<any>
-    return results.map((result) => getKeyValueFromObject(result))
-  } catch (err: any) {
-    debug && log('ERROR', err.message)
-    throw new Error(`resource.controller.${findByResource.name} -> ${err.message}`)
-  }
+export const getResource = async (_req: Request, res: Response, _next: NextFunction) => {
+  const { type, debug } = res.locals.params
+  const data = await resource.getResource(type, debug)
+
+  return res.status(200).json({
+    status: 'OK',
+    data,
+  })
 }
