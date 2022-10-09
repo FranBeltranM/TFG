@@ -1,69 +1,47 @@
-import { Transfer, TransferResult } from '../types'
-import { log } from '../utils/functions'
-import { query } from './db.controller'
+import { Request, Response, NextFunction } from 'express'
+import { paramsEntryPoints } from '../utils/config'
+import { checkIsValidParams, log } from '../utils/functions'
+import * as transfer from '../services/transferServices'
 
-const queryDictGet: { [key: string]: any } = {
-  findByIdVehicle: () => {
-    return `select BIN_TO_UUID(t.id, 1) as id,
-                    t.fecha_tramite,
-                    t.fecha_tramitacion,
-                    t.fecha_proceso,
-                    td.ind_precinto,
-                    td.ind_embargo,
-                    td.localidad_vehiculo,
-                    cod_prov_mat.descripcion as provincia_mat,
-                    cod_prov_veh.descripcion as provincia_veh,
-                    clave.descripcion as tipo_tramite,
-                    td.codigo_postal,
-                    persona.descripcion as persona_fisica_juridica,
-                    servicio.descripcion as tipo_servicio,
-                    td.municipio,
-                    td.renting,
-                    baja_def.descripcion as baja_definitiva,
-                    td.ind_baja_temp,
-                    td.ind_sustraccion
-            from Transferencia t
-            inner join TransferenciaDetalle td on t.id_detalle = td.id
-            left join TablasEstaticas.CLAVE_TRAMITE clave on clave.clave_tramite = td.clave_tramite
-            left join TablasEstaticas.COD_PROVINCIA cod_prov_mat on cod_prov_mat.cod_provincia_mat = td.cod_provincia_mat
-            left join TablasEstaticas.COD_PROVINCIA cod_prov_veh on cod_prov_veh.cod_provincia_mat = td.cod_provincia_veh
-            left join TablasEstaticas.SERVICIO servicio on servicio.servicio = td.servicio_itv
-            left join TablasEstaticas.IND_BAJA_DEF baja_def on baja_def.ind_baja_def = td.ind_baja_def
-            left join TablasEstaticas.PERSONA_FISICA_JURIDICA persona on persona.persona_fisica_juridica = td.persona_fisica_juridica
-            where t.id_vehiculo = UUID_TO_BIN(?, 1)`
-  },
-}
+export const checkValidInput = async (req: Request, res: Response, next: NextFunction) => {
+  const isDebugMode = req.get('DEBUG_FLAG') ?? false
+  const { mandatory: mandatoryParams } = paramsEntryPoints['/transfers/id']()
 
-const createTransferObject = (transferResult: TransferResult): Transfer => {
-  return {
-    startTransferDate: transferResult.fecha_tramite,
-    writeTransferDate: transferResult.fecha_proceso,
-    endTransferDate: transferResult.fecha_tramitacion,
-    typeTransfer: transferResult.tipo_tramite,
-    zipCode: transferResult.codigo_postal,
-    person: transferResult.persona_fisica_juridica,
-    typeServiceVehicle: transferResult.tipo_servicio,
-    city: transferResult.municipio,
+  isDebugMode && log('DEBUG', { params: req.params })
+
+  if (!checkIsValidParams(req.params, mandatoryParams)) {
+    return res.status(400).json({
+      status: 'KO',
+      info: 'Missing fields 🙄',
+    })
   }
-}
 
-export const findByIdVehicle = async (idVehicle: string, debug = false): Promise<Transfer[]> => {
-  try {
-    const queryString = queryDictGet[`${findByIdVehicle.name}`]()
-    debug && log('DEBUG', { queryString })
-    const transfersResults = (await query(queryString, [idVehicle])) as Array<any>
+  const { id } = req.params
 
-    if (transfersResults.length > 0) {
-      const transfers: Transfer[] = transfersResults.map((transferResult: TransferResult) => {
-        return createTransferObject(transferResult)
+  if (id) {
+    const idRegex = new RegExp(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/)
+
+    if (!idRegex.test(id))
+      return res.status(400).json({
+        status: 'KO',
+        info: 'Invalid id format 🙄',
       })
-
-      return transfers
-    }
-
-    return []
-  } catch (err: any) {
-    debug && log('ERROR', err.message)
-    throw new Error(`transfer.controller.${findByIdVehicle.name} -> ${err.message}`)
   }
+
+  res.locals.params = {
+    debug: isDebugMode,
+    ...req.params,
+  }
+
+  return next()
+}
+
+export const getTransfersFromVehicle = async (_req: Request, res: Response, _next: NextFunction) => {
+  const { id, debug } = res.locals.params
+  const transfers = await transfer.getTransfersFromVehicle(id, debug)
+
+  return res.status(200).json({
+    status: 'OK',
+    data: transfers,
+  })
 }

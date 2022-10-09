@@ -1,5 +1,5 @@
 import { expect, describe, it, beforeAll } from 'vitest'
-import { initializeDB } from '../controllers/db.controller'
+import { initializeDB } from '../database/db'
 import * as transferServices from './transferServices'
 
 beforeAll(async () => {
